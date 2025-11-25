@@ -36,24 +36,11 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
     const [strokes, setStrokes] = useState<Stroke[]>([]);
     const [currentStroke, setCurrentStroke] = useState<Stroke | null>(null);
 
-    useImperativeHandle(ref, () => ({
-        exportImage: () => {
-            const canvas = canvasRef.current;
-            if (!canvas) return;
-
-            // Create a temporary link to download
-            const link = document.createElement('a');
-            link.download = `fundus-chart-${eyeSide}-${new Date().toISOString().split('T')[0]}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-        }
-    }));
-
-    const drawBackground = (ctx: CanvasRenderingContext2D, center: Point, radius: number) => {
+    const drawBackground = (ctx: CanvasRenderingContext2D, center: Point, radius: number, inverted: boolean) => {
         ctx.save();
 
         // If inverted, we rotate the entire context for the background drawing
-        if (isInverted) {
+        if (inverted) {
             ctx.translate(center.x, center.y);
             ctx.rotate(Math.PI);
             ctx.translate(-center.x, -center.y);
@@ -149,7 +136,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         ctx.restore();
     };
 
-    const drawStroke = (ctx: CanvasRenderingContext2D, stroke: Stroke) => {
+    const drawStroke = (ctx: CanvasRenderingContext2D, stroke: Stroke, inverted: boolean) => {
         if (stroke.points.length < 2) return;
 
         ctx.beginPath();
@@ -179,7 +166,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         const center = { x: width / 2, y: height / 2 };
 
         ctx.save();
-        if (isInverted) {
+        if (inverted) {
             ctx.translate(center.x, center.y);
             ctx.rotate(Math.PI);
             ctx.translate(-center.x, -center.y);
@@ -212,6 +199,32 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         ctx.restore();
     };
 
+    useImperativeHandle(ref, () => ({
+        exportImage: () => {
+            // Create an off-screen canvas to draw the standard view
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = width;
+            tempCanvas.height = height;
+            const tempCtx = tempCanvas.getContext('2d');
+            if (!tempCtx) return;
+
+            const center = { x: width / 2, y: height / 2 };
+            const radius = Math.min(width, height) / 2 - 20;
+
+            // Draw everything in STANDARD view (inverted = false)
+            drawBackground(tempCtx, center, radius, false);
+            strokes.forEach(s => drawStroke(tempCtx, s, false));
+            // We don't necessarily need to draw the current stroke (in progress), but we can if we want.
+            // Usually export is done when not drawing.
+
+            // Create a temporary link to download
+            const link = document.createElement('a');
+            link.download = `fundus-chart-${eyeSide}-${new Date().toISOString().split('T')[0]}.png`;
+            link.href = tempCanvas.toDataURL('image/png');
+            link.click();
+        }
+    }));
+
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -224,11 +237,11 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         // Clear and Draw
         ctx.clearRect(0, 0, width, height);
 
-        drawBackground(ctx, center, radius);
+        drawBackground(ctx, center, radius, isInverted);
 
-        strokes.forEach(s => drawStroke(ctx, s));
+        strokes.forEach(s => drawStroke(ctx, s, isInverted));
         if (currentStroke) {
-            drawStroke(ctx, currentStroke);
+            drawStroke(ctx, currentStroke, isInverted);
         }
 
     }, [width, height, isInverted, strokes, currentStroke, eyeSide]);
