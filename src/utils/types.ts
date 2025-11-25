@@ -1,6 +1,7 @@
 export type ToolType = 'pen' | 'brush' | 'pattern';
+export type EyeSide = 'OD' | 'OS'; // OD = Right Eye, OS = Left Eye
 
-export type ColorCode = 
+export type ColorCode =
   | 'red'    // Arterioles, Attached Retina, Hemorrhages, Neovascularization
   | 'blue'   // Detached Retina, Veins, Lattice Degeneration
   | 'green'  // Vitreous Opacities, Hemorrhage, Foreign Bodies

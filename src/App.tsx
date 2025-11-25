@@ -1,13 +1,23 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { FundusCanvas } from './components/FundusCanvas';
+import type { FundusCanvasRef } from './components/FundusCanvas';
 import { Toolbar } from './components/Toolbar';
-import type { ColorCode, ToolType } from './utils/types';
+import type { ColorCode, ToolType, EyeSide } from './utils/types';
 import './App.css';
 
 function App() {
   const [activeColor, setActiveColor] = useState<ColorCode>('red');
   const [activeTool, setActiveTool] = useState<ToolType>('pen');
   const [isInverted, setIsInverted] = useState(false);
+  const [eyeSide, setEyeSide] = useState<EyeSide>('OD');
+
+  const canvasRef = useRef<FundusCanvasRef>(null);
+
+  const handleDownload = () => {
+    if (canvasRef.current) {
+      canvasRef.current.exportImage();
+    }
+  };
 
   // These would ideally be managed by a history stack in a real app
   const handleUndo = () => {
@@ -41,11 +51,13 @@ function App() {
       <main className="main-content">
         <div className="canvas-wrapper">
           <FundusCanvas
+            ref={canvasRef}
             width={600}
             height={600}
             activeColor={activeColor}
             activeTool={activeTool}
             isInverted={isInverted}
+            eyeSide={eyeSide}
             onUndo={handleUndo}
             onClear={handleClear}
           />
@@ -59,8 +71,11 @@ function App() {
             setActiveTool={setActiveTool}
             isInverted={isInverted}
             toggleInverted={() => setIsInverted(!isInverted)}
+            eyeSide={eyeSide}
+            setEyeSide={setEyeSide}
             onUndo={handleUndo}
             onClear={handleClear}
+            onDownload={handleDownload}
           />
         </aside>
       </main>

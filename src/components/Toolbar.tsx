@@ -1,8 +1,8 @@
 import React from 'react';
 
-import type { ColorCode, ToolType } from '../utils/types';
+import type { ColorCode, ToolType, EyeSide } from '../utils/types';
 import { MEDICAL_COLORS, TOOL_DESCRIPTIONS } from '../utils/types';
-import { Pen, Brush, Grid, RotateCw, Trash2, Undo } from 'lucide-react';
+import { Pen, Brush, Grid, RotateCw, Trash2, Undo, Eye, Download } from 'lucide-react';
 import './Toolbar.css';
 
 interface ToolbarProps {
@@ -12,8 +12,11 @@ interface ToolbarProps {
     setActiveTool: (t: ToolType) => void;
     isInverted: boolean;
     toggleInverted: () => void;
+    eyeSide: EyeSide;
+    setEyeSide: (s: EyeSide) => void;
     onUndo: () => void;
     onClear: () => void;
+    onDownload: () => void;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
@@ -23,11 +26,36 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     setActiveTool,
     isInverted,
     toggleInverted,
+    eyeSide,
+    setEyeSide,
     onUndo,
-    onClear
+    onClear,
+    onDownload
 }) => {
     return (
         <div className="toolbar">
+            <div className="toolbar-section">
+                <h3 className="toolbar-title">Eye</h3>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setEyeSide('OD')}
+                        className={`view-btn ${eyeSide === 'OD' ? 'active' : ''}`}
+                        title="Right Eye (OD)"
+                    >
+                        <Eye size={18} /> OD (Right)
+                    </button>
+                    <button
+                        onClick={() => setEyeSide('OS')}
+                        className={`view-btn ${eyeSide === 'OS' ? 'active' : ''}`}
+                        title="Left Eye (OS)"
+                    >
+                        <Eye size={18} /> OS (Left)
+                    </button>
+                </div>
+            </div>
+
+            <div className="divider"></div>
+
             <div className="toolbar-section">
                 <h3 className="toolbar-title">Tools</h3>
                 <div className="tool-buttons">
@@ -94,6 +122,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                     <Trash2 size={16} /> Clear
                 </button>
             </div>
+
+            <button onClick={onDownload} className="view-btn" style={{ marginTop: '0.5rem' }}>
+                <Download size={18} /> Download Image
+            </button>
         </div>
     );
 };

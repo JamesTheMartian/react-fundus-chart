@@ -1,8 +1,11 @@
-
-import React, { useRef, useEffect, useState } from 'react';
-import type { Stroke, ColorCode, ToolType, Point } from '../utils/types';
+import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
+import type { Stroke, ColorCode, ToolType, Point, EyeSide } from '../utils/types';
 import { MEDICAL_COLORS } from '../utils/types';
 import './FundusCanvas.css';
+
+export interface FundusCanvasRef {
+    exportImage: () => void;
+}
 
 interface FundusCanvasProps {
     width: number;
@@ -10,6 +13,7 @@ interface FundusCanvasProps {
     activeColor: ColorCode;
     activeTool: ToolType;
     isInverted: boolean;
+    eyeSide: EyeSide;
     onUndo?: () => void;
     onClear?: () => void;
 }
@@ -20,16 +24,30 @@ const CIRCLES = {
     PARS_PLANA: 1.0
 };
 
-export const FundusCanvas: React.FC<FundusCanvasProps> = ({
+export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
     width,
     height,
     activeColor,
     activeTool,
     isInverted,
-}) => {
+    eyeSide,
+}, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [strokes, setStrokes] = useState<Stroke[]>([]);
     const [currentStroke, setCurrentStroke] = useState<Stroke | null>(null);
+
+    useImperativeHandle(ref, () => ({
+        exportImage: () => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+
+            // Create a temporary link to download
+            const link = document.createElement('a');
+            link.download = `fundus-chart-${eyeSide}-${new Date().toISOString().split('T')[0]}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    }));
 
     const drawBackground = (ctx: CanvasRenderingContext2D, center: Point, radius: number) => {
         ctx.save();
@@ -92,7 +110,7 @@ export const FundusCanvas: React.FC<FundusCanvasProps> = ({
             const x = center.x + Math.cos(angle) * labelR;
             const y = center.y + Math.sin(angle) * labelR;
 
-            // Save context to rotate text back so it's upright? 
+            // Save context to rotate text back so it's upright?
             // Or just draw it. If canvas is rotated, text is rotated too.
             // For inverted view, we usually want the chart rotated, so text being rotated is correct (it's upside down).
             ctx.fillText(num, x, y);
@@ -108,13 +126,21 @@ export const FundusCanvas: React.FC<FundusCanvasProps> = ({
         ctx.lineTo(center.x, center.y + 5);
         ctx.stroke();
 
-        // Optic Disc (Nasal)
-        // Assuming Right Eye for this demo: Nasal is Right side (3 o'clock).
-        // In direct view.
-        // Let's place it at 3 o'clock (0 radians) for now.
-        const discDist = radius * 0.4; // Approximate
+        // Optic Disc
+        // OD (Right Eye): Nasal is Right (3 o'clock)
+        // OS (Left Eye): Nasal is Left (9 o'clock)
+        // In standard view:
+        // OD -> 3 o'clock -> 0 radians
+        // OS -> 9 o'clock -> PI radians
+
+        const discAngle = eyeSide === 'OD' ? 0 : Math.PI;
+        const discDist = radius * 0.4;
+
+        const discX = center.x + Math.cos(discAngle) * discDist;
+        const discY = center.y + Math.sin(discAngle) * discDist;
+
         ctx.beginPath();
-        ctx.ellipse(center.x + discDist, center.y, 15, 20, 0, 0, Math.PI * 2);
+        ctx.ellipse(discX, discY, 15, 20, 0, 0, Math.PI * 2);
         ctx.fillStyle = '#ffecb3'; // Light yellow
         ctx.fill();
         ctx.stroke();
@@ -136,7 +162,7 @@ export const FundusCanvas: React.FC<FundusCanvasProps> = ({
         // Since we stored points in "raw" coordinates (as if drawn on standard view),
         // if we are in inverted mode, we should rotate the context so they appear rotated.
         // WAIT. If I draw in inverted mode, I want the mark to stay where I put it relative to the landmarks.
-        // So if I mark the Optic Disc (which is on the Left in Inverted View), 
+        // So if I mark the Optic Disc (which is on the Left in Inverted View),
         // when I flip back to Standard View, the mark should be on the Optic Disc (which is on the Right).
         // This means the coordinate system should be attached to the CHART, not the SCREEN.
 
@@ -205,7 +231,7 @@ export const FundusCanvas: React.FC<FundusCanvasProps> = ({
             drawStroke(ctx, currentStroke);
         }
 
-    }, [width, height, isInverted, strokes, currentStroke]);
+    }, [width, height, isInverted, strokes, currentStroke, eyeSide]);
 
     const getCanvasPoint = (e: React.MouseEvent | React.TouchEvent): Point => {
         const canvas = canvasRef.current;
@@ -221,8 +247,12 @@ export const FundusCanvas: React.FC<FundusCanvasProps> = ({
             clientY = (e as React.MouseEvent).clientY;
         }
 
-        const screenX = clientX - rect.left;
-        const screenY = clientY - rect.top;
+        // Calculate scale factors
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        const screenX = (clientX - rect.left) * scaleX;
+        const screenY = (clientY - rect.top) * scaleY;
 
         // Convert Screen Coordinates -> Chart Coordinates
         // If Inverted: Rotate 180 around center.
@@ -286,4 +316,4 @@ export const FundusCanvas: React.FC<FundusCanvasProps> = ({
             onTouchEnd={handleEnd}
         />
     );
-};
+});
