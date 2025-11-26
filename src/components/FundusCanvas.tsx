@@ -200,7 +200,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
 
     useImperativeHandle(ref, () => ({
         exportImage: () => {
-            // Create an off-screen canvas to draw the standard view
+            // Create a temporary canvas for the final composition
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = width;
             tempCanvas.height = height;
@@ -210,11 +210,25 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             const center = { x: width / 2, y: height / 2 };
             const radius = Math.min(width, height) / 2 - 20;
 
-            // Draw everything in STANDARD view (inverted = false)
+            // 1. Draw Background (White + Grid) on the main context
+            // This ensures the base is white, not transparent
+            tempCtx.fillStyle = '#ffffff';
+            tempCtx.fillRect(0, 0, width, height);
             drawBackground(tempCtx, center, radius, false);
-            strokes.forEach(s => drawStroke(tempCtx, s, false));
-            // We don't necessarily need to draw the current stroke (in progress), but we can if we want.
-            // Usually export is done when not drawing.
+
+            // 2. Draw Strokes on a separate "layer" canvas
+            // This allows 'destination-out' (eraser) to only erase strokes, not the background
+            const strokeCanvas = document.createElement('canvas');
+            strokeCanvas.width = width;
+            strokeCanvas.height = height;
+            const strokeCtx = strokeCanvas.getContext('2d');
+
+            if (strokeCtx) {
+                strokes.forEach(s => drawStroke(strokeCtx, s, false));
+
+                // 3. Composite the strokes layer onto the main context
+                tempCtx.drawImage(strokeCanvas, 0, 0);
+            }
 
             // Create a temporary link to download
             const link = document.createElement('a');
@@ -232,9 +246,22 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             const center = { x: width / 2, y: height / 2 };
             const radius = Math.min(width, height) / 2 - 20;
 
-            // Draw everything in STANDARD view (inverted = false)
+            // 1. Draw Background
+            tempCtx.fillStyle = '#ffffff';
+            tempCtx.fillRect(0, 0, width, height);
             drawBackground(tempCtx, center, radius, false);
-            strokes.forEach(s => drawStroke(tempCtx, s, false));
+
+            // 2. Draw Strokes on separate layer
+            const strokeCanvas = document.createElement('canvas');
+            strokeCanvas.width = width;
+            strokeCanvas.height = height;
+            const strokeCtx = strokeCanvas.getContext('2d');
+
+            if (strokeCtx) {
+                strokes.forEach(s => drawStroke(strokeCtx, s, false));
+                // 3. Composite
+                tempCtx.drawImage(strokeCanvas, 0, 0);
+            }
 
             return tempCanvas.toDataURL('image/png');
         },

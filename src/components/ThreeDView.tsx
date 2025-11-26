@@ -83,8 +83,8 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl }) => {
                 <meshStandardMaterial
                     map={texture}
                     side={THREE.FrontSide} // We deformed it such that normals point in? Or we just look at it.
-                    roughness={0.4}
-                    metalness={0.1}
+                    roughness={1.0} // Matte surface to avoid glare/white spots
+                    metalness={0.0}
                 />
             </mesh>
 
