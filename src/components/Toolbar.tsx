@@ -2,7 +2,7 @@ import React from 'react';
 
 import type { ColorCode, ToolType, EyeSide } from '../utils/types';
 import { MEDICAL_COLORS, TOOL_DESCRIPTIONS } from '../utils/types';
-import { Pen, Brush, Grid, RotateCw, Trash2, Undo, Redo, Eye, Download, Eraser, Box, Sparkles } from 'lucide-react';
+import { Pen, Brush, Grid, RotateCw, Trash2, Undo, Redo, Eye, Download, Eraser, Box, Sparkles, HelpCircle } from 'lucide-react';
 import './Toolbar.css';
 
 interface ToolbarProps {
@@ -20,6 +20,7 @@ interface ToolbarProps {
     onDownload: () => void;
     on3DView: () => void;
     onAnalyze: () => void;
+    onShowLegend: () => void;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
@@ -36,7 +37,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     onClear,
     onDownload,
     on3DView,
-    onAnalyze
+    onAnalyze,
+    onShowLegend
 }) => {
     return (
         <div className="toolbar">
@@ -109,9 +111,19 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                         />
                     ))}
                 </div>
-                <p className="color-desc">
-                    {TOOL_DESCRIPTIONS[activeColor]}
-                </p>
+                <div className="flex justify-between items-center mt-2">
+                    <p className="color-desc" style={{ marginBottom: 0 }}>
+                        {TOOL_DESCRIPTIONS[activeColor]}
+                    </p>
+                    <button
+                        onClick={onShowLegend}
+                        className="help-btn"
+                        title="Color Legend & Tips"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: '4px' }}
+                    >
+                        <HelpCircle size={18} />
+                    </button>
+                </div>
             </div>
 
             <div className="divider"></div>
