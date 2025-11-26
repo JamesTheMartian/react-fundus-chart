@@ -2,7 +2,7 @@ import React from 'react';
 
 import type { ColorCode, ToolType, EyeSide } from '../utils/types';
 import { MEDICAL_COLORS, TOOL_DESCRIPTIONS } from '../utils/types';
-import { Pen, Brush, Grid, RotateCw, Trash2, Undo, Eye, Download } from 'lucide-react';
+import { Pen, Brush, Grid, RotateCw, Trash2, Undo, Redo, Eye, Download, Eraser } from 'lucide-react';
 import './Toolbar.css';
 
 interface ToolbarProps {
@@ -15,6 +15,7 @@ interface ToolbarProps {
     eyeSide: EyeSide;
     setEyeSide: (s: EyeSide) => void;
     onUndo: () => void;
+    onRedo: () => void;
     onClear: () => void;
     onDownload: () => void;
 }
@@ -29,6 +30,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     eyeSide,
     setEyeSide,
     onUndo,
+    onRedo,
     onClear,
     onDownload
 }) => {
@@ -80,6 +82,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                     >
                         <Grid size={20} />
                     </button>
+                    <button
+                        onClick={() => setActiveTool('eraser')}
+                        className={`tool-btn ${activeTool === 'eraser' ? 'active' : ''}`}
+                        title="Eraser"
+                    >
+                        <Eraser size={20} />
+                    </button>
                 </div>
             </div>
 
@@ -115,11 +124,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             </div>
 
             <div className="action-buttons">
-                <button onClick={onUndo} className="action-btn undo-btn">
-                    <Undo size={16} /> Undo
+                <button onClick={onUndo} className="action-btn undo-btn" title="Undo">
+                    <Undo size={16} />
                 </button>
-                <button onClick={onClear} className="action-btn clear-btn">
-                    <Trash2 size={16} /> Clear
+                <button onClick={onRedo} className="action-btn undo-btn" title="Redo">
+                    <Redo size={16} />
+                </button>
+                <button onClick={onClear} className="action-btn clear-btn" title="Clear All">
+                    <Trash2 size={16} />
                 </button>
             </div>
 

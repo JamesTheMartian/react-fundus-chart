@@ -19,25 +19,23 @@ function App() {
     }
   };
 
-  // These would ideally be managed by a history stack in a real app
   const handleUndo = () => {
-    console.log('Undo triggered');
-    // Implementation would require lifting state up from Canvas or using a Context/Store
-    // For this prototype, we'll just log it as the Canvas manages its own strokes internally for now
-    // To implement properly, we should move stroke state to App or a Context.
-    // Given the complexity, I'll leave it as a placeholder or refactor if time permits.
-    // Actually, let's refactor Canvas to accept strokes as props?
-    // No, for now let's keep it simple.
-    alert('Undo not implemented in this prototype version (State is local to Canvas)');
+    if (canvasRef.current) {
+      canvasRef.current.undo();
+    }
+  };
+
+  const handleRedo = () => {
+    if (canvasRef.current) {
+      canvasRef.current.redo();
+    }
   };
 
   const handleClear = () => {
-    // Force re-mount or use a ref to clear
-    // A simple way is to use a key on the canvas
-    // But better to expose a clear method via ref.
-    // For now, let's just reload the page or use a key.
     if (confirm('Clear all drawings?')) {
-      window.location.reload();
+      if (canvasRef.current) {
+        canvasRef.current.clear();
+      }
     }
   };
 
@@ -74,6 +72,7 @@ function App() {
             eyeSide={eyeSide}
             setEyeSide={setEyeSide}
             onUndo={handleUndo}
+            onRedo={handleRedo}
             onClear={handleClear}
             onDownload={handleDownload}
           />

@@ -1,73 +1,71 @@
-# React + TypeScript + Vite
+# React Fundus Chart
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, interactive Retinal Fundus Charting application built with React, TypeScript, and Vite. This tool allows ophthalmologists and eye care professionals to draw, annotate, and manage fundus examination charts with ease.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+-   **Interactive Drawing**: Draw directly on a fundus template using various tools (pencil, eraser).
+-   **Undo/Redo**: Robust undo and redo functionality for drawing actions.
+-   **Customizable Colors**: Select from a palette of standard ophthalmology colors.
+-   **Text Annotations**: Add text notes to specific areas of the chart.
+-   **Dark Mode**: Toggle between light and dark themes for comfortable viewing in different environments.
+-   **Responsive Design**: Works seamlessly on different screen sizes.
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+-   **Frontend Framework**: React 19
+-   **Language**: TypeScript
+-   **Build Tool**: Vite
+-   **Styling**: CSS Modules / Vanilla CSS
+-   **Icons**: Lucide React
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1.  **Clone the repository:**
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+    ```bash
+    git clone https://github.com/JamesTheMartian/react-fundus-chart.git
+    cd react-fundus-chart
+    ```
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+2.  **Install dependencies:**
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+    ```bash
+    npm install
+    ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+3.  **Run the development server:**
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+    ```bash
+    npm run dev
+    ```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+4.  **Build for production:**
+
+    ```bash
+    npm run build
+    ```
+
+## Deployment (GitHub Pages)
+
+This project is configured to be easily deployed to GitHub Pages.
+
+1.  Update `vite.config.ts`:
+    -   Uncomment the `base` property and set it to your repository name: `base: '/react-fundus-chart/',`
+
+2.  Push your changes to GitHub.
+
+3.  The included GitHub Actions workflow (`.github/workflows/deploy.yml`) will automatically build and deploy the application to the `gh-pages` branch.
+
+4.  Go to your repository settings -> Pages, and ensure the source is set to `gh-pages` branch.
+
+## AI Attribution
+
+**This project was developed with the assistance of Artificial Intelligence.**
+
+-   **Code Generation**: Core logic, UI components, and styling were generated and refined using advanced AI coding assistants.
+-   **Design**: The user interface and experience were designed in collaboration with AI to ensure modern aesthetics and usability.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

@@ -5,6 +5,9 @@ import './FundusCanvas.css';
 
 export interface FundusCanvasRef {
     exportImage: () => void;
+    undo: () => void;
+    redo: () => void;
+    clear: () => void;
 }
 
 interface FundusCanvasProps {
@@ -34,6 +37,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
 }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [strokes, setStrokes] = useState<Stroke[]>([]);
+    const [redoStack, setRedoStack] = useState<Stroke[]>([]);
     const [currentStroke, setCurrentStroke] = useState<Stroke | null>(null);
 
     const drawBackground = (ctx: CanvasRenderingContext2D, center: Point, radius: number, inverted: boolean) => {
@@ -139,53 +143,47 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
     const drawStroke = (ctx: CanvasRenderingContext2D, stroke: Stroke, inverted: boolean) => {
         if (stroke.points.length < 2) return;
 
-        ctx.beginPath();
-        ctx.strokeStyle = MEDICAL_COLORS[stroke.color];
-        ctx.lineWidth = stroke.width;
+        ctx.save();
+
+        // Handle Eraser
+        if (stroke.toolType === 'eraser') {
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.lineWidth = stroke.width * 2; // Eraser is usually thicker
+        } else {
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.strokeStyle = MEDICAL_COLORS[stroke.color];
+            ctx.lineWidth = stroke.width;
+        }
+
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        // If inverted, we need to transform points OR rotate context.
-        // Since we stored points in "raw" coordinates (as if drawn on standard view),
-        // if we are in inverted mode, we should rotate the context so they appear rotated.
-        // WAIT. If I draw in inverted mode, I want the mark to stay where I put it relative to the landmarks.
-        // So if I mark the Optic Disc (which is on the Left in Inverted View),
-        // when I flip back to Standard View, the mark should be on the Optic Disc (which is on the Right).
-        // This means the coordinate system should be attached to the CHART, not the SCREEN.
-
-        // Strategy:
-        // Always store points in "Standard Chart Coordinates".
-        // When rendering:
-        //   If Inverted: Rotate Context 180 -> Draw Points (which are standard) -> They appear rotated.
-        //   If Standard: Draw Points directly.
-        // When Inputting:
-        //   If Inverted: Mouse Click is on Screen. We need to map Screen -> Standard Chart Coordinates.
-        //   Screen (Left) -> Chart (Right).
-        //   So we need to un-rotate the input.
-
         const center = { x: width / 2, y: height / 2 };
 
-        ctx.save();
         if (inverted) {
             ctx.translate(center.x, center.y);
             ctx.rotate(Math.PI);
             ctx.translate(-center.x, -center.y);
         }
 
-        if (stroke.toolType === 'pen' || stroke.toolType === 'brush') {
+        if (stroke.toolType === 'pen' || stroke.toolType === 'brush' || stroke.toolType === 'eraser') {
             if (stroke.toolType === 'brush') {
                 ctx.globalAlpha = 0.5; // Semi-transparent for fills
                 ctx.lineWidth = stroke.width * 2;
+            } else if (stroke.toolType === 'eraser') {
+                ctx.globalAlpha = 1.0;
             } else {
                 ctx.globalAlpha = 1.0;
             }
 
+            ctx.beginPath();
             ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
             for (let i = 1; i < stroke.points.length; i++) {
                 ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
             }
             ctx.stroke();
         } else if (stroke.toolType === 'pattern') {
+            ctx.beginPath();
             // Simple pattern: Dotted line for now
             ctx.setLineDash([5, 5]);
             ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
@@ -222,8 +220,41 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             link.download = `fundus-chart-${eyeSide}-${new Date().toISOString().split('T')[0]}.png`;
             link.href = tempCanvas.toDataURL('image/png');
             link.click();
+        },
+        undo: () => {
+            setStrokes(prev => {
+                if (prev.length === 0) return prev;
+                const newStrokes = [...prev];
+                const lastStroke = newStrokes.pop();
+                if (lastStroke) {
+                    setRedoStack(stack => [...stack, lastStroke]);
+                }
+                return newStrokes;
+            });
+        },
+        redo: () => {
+            setRedoStack(prev => {
+                if (prev.length === 0) return prev;
+                const newStack = [...prev];
+                const strokeToRestore = newStack.pop();
+                if (strokeToRestore) {
+                    setStrokes(strokes => [...strokes, strokeToRestore]);
+                }
+                return newStack;
+            });
+        },
+        clear: () => {
+            // Optional: Save current state to history before clearing if we want "Undo Clear"
+            // For now, simple clear
+            setStrokes([]);
+            setRedoStack([]);
         }
     }));
+
+    useEffect(() => {
+        // Debugging undo/redo stacks
+        // console.log('Strokes:', strokes.length, 'RedoStack:', redoStack.length);
+    }, [strokes, redoStack]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -237,11 +268,24 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         // Clear and Draw
         ctx.clearRect(0, 0, width, height);
 
+        // Step 1: Draw Background on Main Canvas
+        // Background is always source-over
+        ctx.globalCompositeOperation = 'source-over';
         drawBackground(ctx, center, radius, isInverted);
 
-        strokes.forEach(s => drawStroke(ctx, s, isInverted));
-        if (currentStroke) {
-            drawStroke(ctx, currentStroke, isInverted);
+        // Step 2: Draw Strokes on Offscreen Canvas
+        const layerCanvas = document.createElement('canvas');
+        layerCanvas.width = width;
+        layerCanvas.height = height;
+        const layerCtx = layerCanvas.getContext('2d');
+
+        if (layerCtx) {
+            strokes.forEach(s => drawStroke(layerCtx, s, isInverted));
+            if (currentStroke) {
+                drawStroke(layerCtx, currentStroke, isInverted);
+            }
+            // Step 3: Composite Layer onto Main
+            ctx.drawImage(layerCanvas, 0, 0);
         }
 
     }, [width, height, isInverted, strokes, currentStroke, eyeSide]);
@@ -287,11 +331,15 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
     const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
         e.preventDefault(); // Prevent scrolling on touch
         const point = getCanvasPoint(e);
+
+        // Clear redo stack on new action
+        setRedoStack([]);
+
         setCurrentStroke({
             id: Date.now().toString(),
             points: [point],
             color: activeColor,
-            width: activeTool === 'brush' ? 10 : 2,
+            width: activeTool === 'brush' || activeTool === 'eraser' ? 20 : 2, // Eraser/Brush bigger
             toolType: activeTool,
             timestamp: Date.now()
         });
