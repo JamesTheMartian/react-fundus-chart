@@ -46,19 +46,6 @@ A modern, interactive Retinal Fundus Charting application built with React, Type
     npm run build
     ```
 
-## Deployment (GitHub Pages)
-
-This project is configured to be easily deployed to GitHub Pages.
-
-1.  Update `vite.config.ts`:
-    -   Uncomment the `base` property and set it to your repository name: `base: '/react-fundus-chart/',`
-
-2.  Push your changes to GitHub.
-
-3.  The included GitHub Actions workflow (`.github/workflows/deploy.yml`) will automatically build and deploy the application to the `gh-pages` branch.
-
-4.  Go to your repository settings -> Pages, and ensure the source is set to `gh-pages` branch.
-
 ## AI Attribution
 
 **This project was developed with the assistance of Artificial Intelligence.**

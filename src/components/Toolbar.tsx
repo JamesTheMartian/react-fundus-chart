@@ -2,7 +2,7 @@ import React from 'react';
 
 import type { ColorCode, ToolType, EyeSide } from '../utils/types';
 import { MEDICAL_COLORS, TOOL_DESCRIPTIONS } from '../utils/types';
-import { Pen, Brush, Grid, RotateCw, Trash2, Undo, Redo, Eye, Download, Eraser } from 'lucide-react';
+import { Pen, Brush, Grid, RotateCw, Trash2, Undo, Redo, Eye, Download, Eraser, Box, Sparkles } from 'lucide-react';
 import './Toolbar.css';
 
 interface ToolbarProps {
@@ -18,6 +18,8 @@ interface ToolbarProps {
     onRedo: () => void;
     onClear: () => void;
     onDownload: () => void;
+    on3DView: () => void;
+    onAnalyze: () => void;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
@@ -32,7 +34,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     onUndo,
     onRedo,
     onClear,
-    onDownload
+    onDownload,
+    on3DView,
+    onAnalyze
 }) => {
     return (
         <div className="toolbar">
@@ -120,6 +124,24 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 >
                     <RotateCw size={18} className={`rotate-icon ${isInverted ? 'rotated' : ''}`} />
                     {isInverted ? 'Inverted View' : 'Standard View'}
+                </button>
+                <button
+                    onClick={on3DView}
+                    className="view-btn"
+                    style={{ marginTop: '0.5rem' }}
+                >
+                    <Box size={18} /> 3D View
+                </button>
+            </div>
+
+            <div className="toolbar-section">
+                <h3 className="toolbar-title">AI</h3>
+                <button
+                    onClick={onAnalyze}
+                    className="view-btn ai-btn"
+                    style={{ marginTop: '0.5rem', background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)', border: 'none' }}
+                >
+                    <Sparkles size={18} /> Analyze Chart
                 </button>
             </div>
 

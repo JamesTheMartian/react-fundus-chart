@@ -2,6 +2,8 @@ import { useState, useRef } from 'react';
 import { FundusCanvas } from './components/FundusCanvas';
 import type { FundusCanvasRef } from './components/FundusCanvas';
 import { Toolbar } from './components/Toolbar';
+import { ThreeDView } from './components/ThreeDView';
+import { AIAnalysisModal } from './components/AIAnalysisModal';
 import type { ColorCode, ToolType, EyeSide } from './utils/types';
 import './App.css';
 
@@ -10,6 +12,9 @@ function App() {
   const [activeTool, setActiveTool] = useState<ToolType>('pen');
   const [isInverted, setIsInverted] = useState(false);
   const [eyeSide, setEyeSide] = useState<EyeSide>('OD');
+  const [show3D, setShow3D] = useState(false);
+  const [showAI, setShowAI] = useState(false);
+  const [textureUrl, setTextureUrl] = useState('');
 
   const canvasRef = useRef<FundusCanvasRef>(null);
 
@@ -35,6 +40,26 @@ function App() {
     if (confirm('Clear all drawings?')) {
       if (canvasRef.current) {
         canvasRef.current.clear();
+      }
+    }
+  };
+
+  const handle3DView = () => {
+    if (canvasRef.current) {
+      const url = canvasRef.current.getDataURL();
+      if (url) {
+        setTextureUrl(url);
+        setShow3D(true);
+      }
+    }
+  };
+
+  const handleAnalyze = () => {
+    if (canvasRef.current) {
+      const url = canvasRef.current.getDataURL();
+      if (url) {
+        setTextureUrl(url);
+        setShowAI(true);
       }
     }
   };
@@ -75,9 +100,13 @@ function App() {
             onRedo={handleRedo}
             onClear={handleClear}
             onDownload={handleDownload}
+            on3DView={handle3DView}
+            onAnalyze={handleAnalyze}
           />
         </aside>
       </main>
+      {show3D && <ThreeDView textureUrl={textureUrl} onClose={() => setShow3D(false)} />}
+      {showAI && <AIAnalysisModal imageData={textureUrl} onClose={() => setShowAI(false)} />}
     </div>
   );
 }

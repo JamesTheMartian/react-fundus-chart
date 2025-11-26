@@ -5,6 +5,7 @@ import './FundusCanvas.css';
 
 export interface FundusCanvasRef {
     exportImage: () => void;
+    getDataURL: () => string;
     undo: () => void;
     redo: () => void;
     clear: () => void;
@@ -220,6 +221,22 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             link.download = `fundus-chart-${eyeSide}-${new Date().toISOString().split('T')[0]}.png`;
             link.href = tempCanvas.toDataURL('image/png');
             link.click();
+        },
+        getDataURL: () => {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = width;
+            tempCanvas.height = height;
+            const tempCtx = tempCanvas.getContext('2d');
+            if (!tempCtx) return '';
+
+            const center = { x: width / 2, y: height / 2 };
+            const radius = Math.min(width, height) / 2 - 20;
+
+            // Draw everything in STANDARD view (inverted = false)
+            drawBackground(tempCtx, center, radius, false);
+            strokes.forEach(s => drawStroke(tempCtx, s, false));
+
+            return tempCanvas.toDataURL('image/png');
         },
         undo: () => {
             setStrokes(prev => {
