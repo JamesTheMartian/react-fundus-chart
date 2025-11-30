@@ -8,9 +8,10 @@ import './ThreeDView.css';
 interface EyeModelProps {
     textureUrl: string;
     strokes: Stroke[];
+    detachmentHeight: number;
 }
 
-const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes }) => {
+const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes, detachmentHeight }) => {
     const texture = useLoader(THREE.TextureLoader, textureUrl);
     const materialRef = React.useRef<THREE.MeshStandardMaterial>(null);
 
@@ -61,14 +62,16 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes }) => {
     const onBeforeCompile = React.useCallback((shader: any) => {
         shader.uniforms.uTime = { value: 0 };
         shader.uniforms.uDisplacementMap = { value: displacementMap };
+        shader.uniforms.uDetachmentHeight = { value: detachmentHeight };
 
         // Inject uniforms
         shader.vertexShader = `
             uniform float uTime;
+            uniform float uDetachmentHeight;
             uniform sampler2D uDisplacementMap;
         ` + shader.vertexShader;
 
-        // Inject vertex displacement logic
+        // Inject vertex displacement and normal recalculation logic
         shader.vertexShader = shader.vertexShader.replace(
             '#include <begin_vertex>',
             `
@@ -79,15 +82,50 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes }) => {
 
             // Add wave effect only where there is displacement
             if (disp > 0.1) {
-                float wave = sin(position.x * 10.0 + uTime * 2.0) * 0.05 + 
-                             cos(position.y * 10.0 + uTime * 3.0) * 0.05;
+                // Wave function: sin(x*10 + t*2) * 0.05 + cos(y*10 + t*3) * 0.05
+                float waveX = position.x * 10.0 + uTime * 2.0;
+                float waveY = position.y * 10.0 + uTime * 3.0;
                 
-                // Displace inwards (towards center of sphere) or outwards?
-                // Normal points inwards in our geometry setup?
-                // Let's displace along normal.
+                float wave = sin(waveX) * 0.05 + cos(waveY) * 0.05;
                 
-                float strength = 0.3; // Max displacement amount
-                transformed += normal * (disp * strength + wave * disp);
+                // Derivatives for normal recalculation
+                // d(sin(u))/dx = cos(u) * du/dx
+                float dWaveDx = cos(waveX) * 10.0 * 0.05; // * 0.5
+                float dWaveDy = -sin(waveY) * 10.0 * 0.05; // * -0.5
+                
+                // Use uDetachmentHeight uniform
+                float strength = uDetachmentHeight; 
+                float totalDisp = disp * strength + wave * disp;
+                
+                transformed += normal * totalDisp;
+
+                // Recalculate Normal
+                // We approximate the new normal by subtracting the gradient of the wave
+                // This is a simplification but works well for visual waves
+                vec3 waveGrad = vec3(dWaveDx, dWaveDy, 0.0);
+                
+                // Rotate gradient to match surface normal? 
+                // Since we are on a sphere, this is tricky in object space without tangent basis.
+                // However, simply adding the gradient to the normal often gives "good enough" results for noise.
+                // A better way for displacement along normal N is:
+                // NewNormal = N - Gradient * Scale
+                
+                // Let's try perturbing the objectNormal directly
+                // We need to ensure we modify 'objectNormal' or 'vNormal' correctly.
+                // In this chunk, 'objectNormal' is available (from beginnormal_vertex).
+                // But 'transformed' is position.
+                
+                // We can't easily modify objectNormal here because it might have been used already?
+                // Actually, <begin_vertex> is after <beginnormal_vertex>.
+                // So objectNormal is set.
+                
+                // Let's perturb it.
+                // We assume the wave is primarily in X/Y for the gradient calculation above.
+                // But on a sphere, X/Y are changing.
+                // Let's just use the computed gradient as a perturbation.
+                
+                vec3 perturbedNormal = normalize(objectNormal - waveGrad * disp * 0.5);
+                vNormal = normalize(normalMatrix * perturbedNormal);
             }
             `
         );
@@ -97,12 +135,13 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes }) => {
 
     }, [displacementMap]);
 
-    // Update Uniforms when displacement map changes
+    // Update Uniforms when displacement map or height changes
     React.useEffect(() => {
         if (materialRef.current && (materialRef.current as any).userData.shader) {
             (materialRef.current as any).userData.shader.uniforms.uDisplacementMap.value = displacementMap;
+            (materialRef.current as any).userData.shader.uniforms.uDetachmentHeight.value = detachmentHeight;
         }
-    }, [displacementMap]);
+    }, [displacementMap, detachmentHeight]);
 
     // Animation Loop
     React.useEffect(() => {
@@ -150,7 +189,7 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes }) => {
             // Polar coordinates to Cartesian
             // We want the pole (center of image) to be at Z-deepest point?
             // User wants "Inside of the sphere".
-            // Let's place the pole at (0, 0, -R) and rim at Z=0?
+            // Let's place the pole at (0,0,-R) and rim at Z=0?
             // Or Pole at (0,0,R) and look from (0,0,0)?
 
             // Standard Sphere:
@@ -193,8 +232,8 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes }) => {
                     ref={materialRef}
                     map={texture}
                     side={THREE.FrontSide} // We deformed it such that normals point in? Or we just look at it.
-                    roughness={1.0} // Matte surface to avoid glare/white spots
-                    metalness={0.0}
+                    roughness={0.3} // Wetter surface
+                    metalness={0.1} // Slight shine
                     onBeforeCompile={onBeforeCompile}
                 />
             </mesh>
@@ -206,13 +245,13 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes }) => {
             </mesh>
 
             {/* Outer Shell (for depth/shadows from outside) */}
-            <mesh position={[0, 0, 0]}>
+            <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                 <sphereGeometry args={[2.02, 64, 64, 0, Math.PI * 2, 0, Math.PI / 2]} />
                 <meshStandardMaterial
-                    color="#e5e7eb"
-                    side={THREE.BackSide} // Render inside of this shell? No, this is the back of the eye.
-                // Actually, if we look into the bowl, we see the fundus.
-                // The "back" of the eye is behind the fundus.
+                    color="#000"
+                    side={THREE.FrontSide}
+                    transparent={true}
+                    opacity={0.7}
                 />
             </mesh>
         </group>
@@ -222,10 +261,11 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes }) => {
 interface ThreeDViewProps {
     textureUrl: string;
     strokes: Stroke[];
+    detachmentHeight: number;
     onClose: () => void;
 }
 
-export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, strokes, onClose }) => {
+export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, strokes, detachmentHeight, onClose }) => {
     return (
         <div className="three-d-modal-overlay">
             <div className="three-d-modal-content">
@@ -237,18 +277,20 @@ export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, strokes, onC
                     {/* Position camera to look into the hemisphere */}
                     <Canvas camera={{ position: [0, 0, 5], fov: 50 }} shadows>
                         <color attach="background" args={['#111827']} />
-                        <ambientLight intensity={0.5} />
-                        <spotLight
+                        <ambientLight intensity={0.4} />
+                        <directionalLight
                             position={[5, 5, 5]}
-                            angle={0.3}
-                            penumbra={1}
-                            intensity={1}
+                            intensity={1.0}
                             castShadow
                         />
-                        <pointLight position={[-5, -5, -5]} intensity={0.5} color="#4f46e5" />
+                        <directionalLight
+                            position={[-5, 5, 5]}
+                            intensity={0.5}
+                        />
+                        <pointLight position={[0, 0, 2]} intensity={0.5} color="#ffffff" />
 
                         <Suspense fallback={<Html center>Loading 3D Model...</Html>}>
-                            <EyeModel key={textureUrl} textureUrl={textureUrl} strokes={strokes} />
+                            <EyeModel key={textureUrl} textureUrl={textureUrl} strokes={strokes} detachmentHeight={detachmentHeight} />
                         </Suspense>
 
                         <OrbitControls

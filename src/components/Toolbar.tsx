@@ -14,6 +14,8 @@ interface ToolbarProps {
     setBrushSize: (s: number) => void;
     activePathology: PathologyType;
     setActivePathology: (p: PathologyType) => void;
+    detachmentHeight: number;
+    setDetachmentHeight: (h: number) => void;
     isInverted: boolean;
     toggleInverted: () => void;
     eyeSide: EyeSide;
@@ -36,6 +38,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     setBrushSize,
     activePathology,
     setActivePathology,
+    detachmentHeight,
+    setDetachmentHeight,
     isInverted,
     toggleInverted,
     eyeSide,
@@ -135,6 +139,24 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                     ))}
                 </select>
             </div>
+
+            {activePathology === 'detachment' && (
+                <>
+                    <div className="divider"></div>
+                    <div className="toolbar-section">
+                        <h3 className="toolbar-title">Detachment Height: {detachmentHeight}</h3>
+                        <input
+                            type="range"
+                            min="0.1"
+                            max="1.0"
+                            step="0.1"
+                            value={detachmentHeight}
+                            onChange={(e) => setDetachmentHeight(Number(e.target.value))}
+                            className="w-full"
+                        />
+                    </div>
+                </>
+            )}
 
             <div className="divider"></div>
 

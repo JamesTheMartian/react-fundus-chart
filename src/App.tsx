@@ -14,6 +14,7 @@ function App() {
   const [activeTool, setActiveTool] = useState<ToolType>('pen');
   const [brushSize, setBrushSize] = useState<number>(2);
   const [activePathology, setActivePathology] = useState<PathologyType>('normal');
+  const [detachmentHeight, setDetachmentHeight] = useState<number>(0.3);
   const [isInverted, setIsInverted] = useState(false);
   const [eyeSide, setEyeSide] = useState<EyeSide>('OD');
   const [show3D, setShow3D] = useState(false);
@@ -114,6 +115,8 @@ function App() {
             setBrushSize={setBrushSize}
             activePathology={activePathology}
             setActivePathology={handlePathologyChange}
+            detachmentHeight={detachmentHeight}
+            setDetachmentHeight={setDetachmentHeight}
             isInverted={isInverted}
             toggleInverted={() => setIsInverted(!isInverted)}
             eyeSide={eyeSide}
@@ -128,7 +131,7 @@ function App() {
           />
         </aside>
       </main>
-      {show3D && <ThreeDView textureUrl={textureUrl} strokes={currentStrokes} onClose={() => setShow3D(false)} />}
+      {show3D && <ThreeDView textureUrl={textureUrl} strokes={currentStrokes} detachmentHeight={detachmentHeight} onClose={() => setShow3D(false)} />}
       {showAI && <AIAnalysisModal imageData={textureUrl} onClose={() => setShowAI(false)} />}
       <ColorLegendModal isOpen={showLegend} onClose={() => setShowLegend(false)} />
     </div>
