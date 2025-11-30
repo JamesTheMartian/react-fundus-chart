@@ -5,18 +5,22 @@ import { Toolbar } from './components/Toolbar';
 import { ThreeDView } from './components/ThreeDView';
 import { AIAnalysisModal } from './components/AIAnalysisModal';
 import { ColorLegendModal } from './components/ColorLegendModal';
-import type { ColorCode, ToolType, EyeSide } from './utils/types';
+import type { ColorCode, ToolType, EyeSide, PathologyType } from './utils/types';
+import { PATHOLOGY_PRESETS } from './utils/types';
 import './App.css';
 
 function App() {
   const [activeColor, setActiveColor] = useState<ColorCode>('red');
   const [activeTool, setActiveTool] = useState<ToolType>('pen');
+  const [brushSize, setBrushSize] = useState<number>(2);
+  const [activePathology, setActivePathology] = useState<PathologyType>('normal');
   const [isInverted, setIsInverted] = useState(false);
   const [eyeSide, setEyeSide] = useState<EyeSide>('OD');
   const [show3D, setShow3D] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [showLegend, setShowLegend] = useState(false);
   const [textureUrl, setTextureUrl] = useState('');
+  const [currentStrokes, setCurrentStrokes] = useState<any[]>([]);
 
   const canvasRef = useRef<FundusCanvasRef>(null);
 
@@ -51,11 +55,11 @@ function App() {
       const url = canvasRef.current.getDataURL();
       if (url) {
         setTextureUrl(url);
+        setCurrentStrokes(canvasRef.current.getStrokes());
         setShow3D(true);
       }
     }
   };
-
   const handleAnalyze = () => {
     if (canvasRef.current) {
       const url = canvasRef.current.getDataURL();
@@ -63,6 +67,16 @@ function App() {
         setTextureUrl(url);
         setShowAI(true);
       }
+    }
+  };
+
+  const handlePathologyChange = (pathology: PathologyType) => {
+    setActivePathology(pathology);
+    const preset = PATHOLOGY_PRESETS[pathology];
+    if (preset) {
+      setActiveColor(preset.color);
+      setActiveTool(preset.tool);
+      setBrushSize(preset.width);
     }
   };
 
@@ -81,6 +95,8 @@ function App() {
             height={600}
             activeColor={activeColor}
             activeTool={activeTool}
+            brushSize={brushSize}
+            activePathology={activePathology}
             isInverted={isInverted}
             eyeSide={eyeSide}
             onUndo={handleUndo}
@@ -94,6 +110,10 @@ function App() {
             setActiveColor={setActiveColor}
             activeTool={activeTool}
             setActiveTool={setActiveTool}
+            brushSize={brushSize}
+            setBrushSize={setBrushSize}
+            activePathology={activePathology}
+            setActivePathology={handlePathologyChange}
             isInverted={isInverted}
             toggleInverted={() => setIsInverted(!isInverted)}
             eyeSide={eyeSide}
@@ -108,7 +128,7 @@ function App() {
           />
         </aside>
       </main>
-      {show3D && <ThreeDView textureUrl={textureUrl} onClose={() => setShow3D(false)} />}
+      {show3D && <ThreeDView textureUrl={textureUrl} strokes={currentStrokes} onClose={() => setShow3D(false)} />}
       {showAI && <AIAnalysisModal imageData={textureUrl} onClose={() => setShowAI(false)} />}
       <ColorLegendModal isOpen={showLegend} onClose={() => setShowLegend(false)} />
     </div>

@@ -1,7 +1,7 @@
 import React from 'react';
 
-import type { ColorCode, ToolType, EyeSide } from '../utils/types';
-import { MEDICAL_COLORS, TOOL_DESCRIPTIONS } from '../utils/types';
+import type { ColorCode, ToolType, EyeSide, PathologyType } from '../utils/types';
+import { MEDICAL_COLORS, TOOL_DESCRIPTIONS, PATHOLOGY_PRESETS } from '../utils/types';
 import { Pen, Brush, Grid, RotateCw, Trash2, Undo, Redo, Eye, Download, Eraser, Box, Sparkles, HelpCircle } from 'lucide-react';
 import './Toolbar.css';
 
@@ -10,6 +10,10 @@ interface ToolbarProps {
     setActiveColor: (c: ColorCode) => void;
     activeTool: ToolType;
     setActiveTool: (t: ToolType) => void;
+    brushSize: number;
+    setBrushSize: (s: number) => void;
+    activePathology: PathologyType;
+    setActivePathology: (p: PathologyType) => void;
     isInverted: boolean;
     toggleInverted: () => void;
     eyeSide: EyeSide;
@@ -28,6 +32,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     setActiveColor,
     activeTool,
     setActiveTool,
+    brushSize,
+    setBrushSize,
+    activePathology,
+    setActivePathology,
     isInverted,
     toggleInverted,
     eyeSide,
@@ -97,6 +105,38 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                     </button>
                 </div>
             </div>
+
+            <div className="toolbar-section">
+                <h3 className="toolbar-title">Brush Size: {brushSize}px</h3>
+                <input
+                    type="range"
+                    min="1"
+                    max="50"
+                    value={brushSize}
+                    onChange={(e) => setBrushSize(Number(e.target.value))}
+                    className="w-full"
+                />
+            </div>
+
+            <div className="divider"></div>
+
+            <div className="toolbar-section">
+                <h3 className="toolbar-title">Pathology</h3>
+                <select
+                    value={activePathology}
+                    onChange={(e) => setActivePathology(e.target.value as PathologyType)}
+                    className="pathology-select"
+                    style={{ width: '100%', padding: '4px', borderRadius: '4px', border: '1px solid #d1d5db' }}
+                >
+                    {(Object.keys(PATHOLOGY_PRESETS) as PathologyType[]).map((type) => (
+                        <option key={type} value={type}>
+                            {PATHOLOGY_PRESETS[type].label}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            <div className="divider"></div>
 
             <div className="toolbar-section">
                 <h3 className="toolbar-title">Colors</h3>

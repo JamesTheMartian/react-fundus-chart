@@ -2,14 +2,123 @@ import React, { Suspense } from 'react';
 import { Canvas, useLoader } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
+import type { Stroke } from '../utils/types';
 import './ThreeDView.css';
 
 interface EyeModelProps {
     textureUrl: string;
+    strokes: Stroke[];
 }
 
-const EyeModel: React.FC<EyeModelProps> = ({ textureUrl }) => {
+const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes }) => {
     const texture = useLoader(THREE.TextureLoader, textureUrl);
+    const materialRef = React.useRef<THREE.MeshStandardMaterial>(null);
+
+    // Generate Displacement Map for Detachments
+    const displacementMap = React.useMemo(() => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return null;
+
+        // Black background (no displacement)
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, 512, 512);
+
+        // Draw Detachment strokes in White
+        const detachmentStrokes = strokes.filter(s => s.pathology === 'detachment' || s.pathology === 'tear');
+
+        if (detachmentStrokes.length === 0) return null;
+
+        // Scale factor from original 600x600 to 512x512
+        const scaleX = 512 / 600;
+        const scaleY = 512 / 600;
+
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#FFFFFF';
+        // Blur for smooth transition
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#FFFFFF';
+
+        detachmentStrokes.forEach(stroke => {
+            if (stroke.points.length < 2) return;
+            ctx.lineWidth = stroke.width * scaleX;
+            ctx.beginPath();
+            ctx.moveTo(stroke.points[0].x * scaleX, stroke.points[0].y * scaleY);
+            for (let i = 1; i < stroke.points.length; i++) {
+                ctx.lineTo(stroke.points[i].x * scaleX, stroke.points[i].y * scaleY);
+            }
+            ctx.stroke();
+        });
+
+        const tex = new THREE.CanvasTexture(canvas);
+        return tex;
+    }, [strokes]);
+
+    // Custom Shader Logic
+    const onBeforeCompile = React.useCallback((shader: any) => {
+        shader.uniforms.uTime = { value: 0 };
+        shader.uniforms.uDisplacementMap = { value: displacementMap };
+
+        // Inject uniforms
+        shader.vertexShader = `
+            uniform float uTime;
+            uniform sampler2D uDisplacementMap;
+        ` + shader.vertexShader;
+
+        // Inject vertex displacement logic
+        shader.vertexShader = shader.vertexShader.replace(
+            '#include <begin_vertex>',
+            `
+            #include <begin_vertex>
+            
+            // Read displacement from map
+            float disp = texture2D(uDisplacementMap, uv).r;
+
+            // Add wave effect only where there is displacement
+            if (disp > 0.1) {
+                float wave = sin(position.x * 10.0 + uTime * 2.0) * 0.05 + 
+                             cos(position.y * 10.0 + uTime * 3.0) * 0.05;
+                
+                // Displace inwards (towards center of sphere) or outwards?
+                // Normal points inwards in our geometry setup?
+                // Let's displace along normal.
+                
+                float strength = 0.3; // Max displacement amount
+                transformed += normal * (disp * strength + wave * disp);
+            }
+            `
+        );
+
+        // Save reference to shader to update uniforms
+        (materialRef.current as any).userData.shader = shader;
+
+    }, [displacementMap]);
+
+    // Update Uniforms when displacement map changes
+    React.useEffect(() => {
+        if (materialRef.current && (materialRef.current as any).userData.shader) {
+            (materialRef.current as any).userData.shader.uniforms.uDisplacementMap.value = displacementMap;
+        }
+    }, [displacementMap]);
+
+    // Animation Loop
+    React.useEffect(() => {
+        let frameId: number;
+        const startTime = Date.now();
+
+        const animate = () => {
+            const time = (Date.now() - startTime) / 1000;
+            if (materialRef.current && (materialRef.current as any).userData.shader) {
+                (materialRef.current as any).userData.shader.uniforms.uTime.value = time;
+            }
+            frameId = requestAnimationFrame(animate);
+        };
+        animate();
+        return () => cancelAnimationFrame(frameId);
+    }, []);
 
     // Custom Geometry to map the flat circular image onto a hemisphere
     const geometry = React.useMemo(() => {
@@ -81,10 +190,12 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl }) => {
             {/* The Fundus Map */}
             <mesh geometry={geometry}>
                 <meshStandardMaterial
+                    ref={materialRef}
                     map={texture}
                     side={THREE.FrontSide} // We deformed it such that normals point in? Or we just look at it.
                     roughness={1.0} // Matte surface to avoid glare/white spots
                     metalness={0.0}
+                    onBeforeCompile={onBeforeCompile}
                 />
             </mesh>
 
@@ -110,10 +221,11 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl }) => {
 
 interface ThreeDViewProps {
     textureUrl: string;
+    strokes: Stroke[];
     onClose: () => void;
 }
 
-export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, onClose }) => {
+export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, strokes, onClose }) => {
     return (
         <div className="three-d-modal-overlay">
             <div className="three-d-modal-content">
@@ -136,7 +248,7 @@ export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, onClose }) =
                         <pointLight position={[-5, -5, -5]} intensity={0.5} color="#4f46e5" />
 
                         <Suspense fallback={<Html center>Loading 3D Model...</Html>}>
-                            <EyeModel key={textureUrl} textureUrl={textureUrl} />
+                            <EyeModel key={textureUrl} textureUrl={textureUrl} strokes={strokes} />
                         </Suspense>
 
                         <OrbitControls

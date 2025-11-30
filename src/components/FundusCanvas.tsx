@@ -1,11 +1,12 @@
 import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
-import type { Stroke, ColorCode, ToolType, Point, EyeSide } from '../utils/types';
+import type { Stroke, ColorCode, ToolType, Point, EyeSide, PathologyType } from '../utils/types';
 import { MEDICAL_COLORS } from '../utils/types';
 import './FundusCanvas.css';
 
 export interface FundusCanvasRef {
     exportImage: () => void;
     getDataURL: () => string;
+    getStrokes: () => Stroke[];
     undo: () => void;
     redo: () => void;
     clear: () => void;
@@ -16,6 +17,8 @@ interface FundusCanvasProps {
     height: number;
     activeColor: ColorCode;
     activeTool: ToolType;
+    brushSize: number;
+    activePathology: PathologyType;
     isInverted: boolean;
     eyeSide: EyeSide;
     onUndo?: () => void;
@@ -33,6 +36,8 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
     height,
     activeColor,
     activeTool,
+    brushSize,
+    activePathology,
     isInverted,
     eyeSide,
 }, ref) => {
@@ -265,6 +270,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
 
             return tempCanvas.toDataURL('image/png');
         },
+        getStrokes: () => strokes,
         undo: () => {
             setStrokes(prev => {
                 if (prev.length === 0) return prev;
@@ -383,8 +389,9 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             id: Date.now().toString(),
             points: [point],
             color: activeColor,
-            width: activeTool === 'brush' || activeTool === 'eraser' ? 20 : 2, // Eraser/Brush bigger
+            width: brushSize,
             toolType: activeTool,
+            pathology: activePathology,
             timestamp: Date.now()
         });
     };
