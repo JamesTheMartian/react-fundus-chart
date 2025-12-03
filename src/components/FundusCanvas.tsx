@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import type { Stroke, ColorCode, ToolType, Point, EyeSide, PathologyType } from '../utils/types';
 import { MEDICAL_COLORS } from '../utils/types';
-import './FundusCanvas.css';
+// import './FundusCanvas.css'; // Removed for Tailwind migration
 
 export interface FundusCanvasRef {
     exportImage: () => void;
@@ -418,7 +418,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             ref={canvasRef}
             width={width}
             height={height}
-            className="fundus-canvas"
+            className="border border-gray-200 rounded-2xl bg-white cursor-crosshair touch-none shadow-sm"
             onMouseDown={handleStart}
             onMouseMove={handleMove}
             onMouseUp={handleEnd}

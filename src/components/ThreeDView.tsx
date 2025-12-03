@@ -3,7 +3,7 @@ import { Canvas, useLoader } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import type { Stroke } from '../utils/types';
-import './ThreeDView.css';
+// import './ThreeDView.css'; // Removed for Tailwind migration
 
 interface EyeModelProps {
     textureUrl: string;
@@ -258,6 +258,8 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes, detachmentHeig
     );
 };
 
+// import './ThreeDView.css'; // Removed for Tailwind migration
+
 interface ThreeDViewProps {
     textureUrl: string;
     strokes: Stroke[];
@@ -267,16 +269,21 @@ interface ThreeDViewProps {
 
 export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, strokes, detachmentHeight, onClose }) => {
     return (
-        <div className="three-d-modal-overlay">
-            <div className="three-d-modal-content">
-                <div className="three-d-header">
-                    <h2>3D Fundus Visualization</h2>
-                    <button className="close-btn" onClick={onClose}>Close</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="w-full max-w-6xl h-[85vh] bg-gray-900 rounded-3xl overflow-hidden flex flex-col shadow-2xl border border-gray-800">
+                <div className="p-4 bg-gray-950 flex justify-between items-center border-b border-gray-800">
+                    <h2 className="text-lg font-semibold text-white">3D Fundus Visualization</h2>
+                    <button
+                        className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors text-sm"
+                        onClick={onClose}
+                    >
+                        Close
+                    </button>
                 </div>
-                <div className="three-d-canvas-container">
+                <div className="flex-1 w-full h-full bg-black relative">
                     {/* Position camera to look into the hemisphere */}
                     <Canvas camera={{ position: [0, 0, 5], fov: 50 }} shadows>
-                        <color attach="background" args={['#111827']} />
+                        <color attach="background" args={['#000000']} />
                         <ambientLight intensity={0.4} />
                         <directionalLight
                             position={[5, 5, 5]}
@@ -289,7 +296,7 @@ export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, strokes, det
                         />
                         <pointLight position={[0, 0, 2]} intensity={0.5} color="#ffffff" />
 
-                        <Suspense fallback={<Html center>Loading 3D Model...</Html>}>
+                        <Suspense fallback={<Html center><div className="text-white">Loading 3D Model...</div></Html>}>
                             <EyeModel key={textureUrl} textureUrl={textureUrl} strokes={strokes} detachmentHeight={detachmentHeight} />
                         </Suspense>
 

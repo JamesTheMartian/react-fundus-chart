@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { analyzeChart } from '../services/aiService';
 import { Sparkles, X, Key, AlertCircle } from 'lucide-react';
-import './AIAnalysisModal.css';
+// import './AIAnalysisModal.css'; // Removed for Tailwind migration
 
 interface AIAnalysisModalProps {
     imageData: string;
@@ -58,47 +58,63 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ imageData, onC
     };
 
     return (
-        <div className="ai-modal-overlay">
-            <div className="ai-modal-content">
-                <div className="ai-header">
-                    <h2><Sparkles size={20} className="text-blue-400" /> AI Chart Analysis</h2>
-                    <button className="close-btn" onClick={onClose}><X size={20} /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="w-full max-w-2xl bg-gray-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-gray-800">
+                <div className="p-4 bg-gray-950 border-b border-gray-800 flex justify-between items-center">
+                    <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                        <Sparkles size={20} className="text-blue-400" /> AI Chart Analysis
+                    </h2>
+                    <button
+                        className="p-2 hover:bg-gray-800 rounded-full text-gray-400 hover:text-white transition-colors"
+                        onClick={onClose}
+                    >
+                        <X size={20} />
+                    </button>
                 </div>
 
-                <div className="ai-body">
-                    <div className="api-key-section">
-                        <label className="text-sm font-medium text-gray-300">OpenRouter API Key</label>
-                        <div className="relative">
-                            <input
-                                type="password"
-                                value={apiKey}
-                                onChange={(e) => setApiKey(e.target.value)}
-                                placeholder="sk-or-..."
-                                className="api-key-input"
-                            />
-                            <Key size={16} className="absolute right-3 top-3 text-gray-400" />
+                <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
+                    <div className="flex flex-col gap-4 mb-6">
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm font-medium text-gray-300">OpenRouter API Key</label>
+                            <div className="relative">
+                                <input
+                                    type="password"
+                                    value={apiKey}
+                                    onChange={(e) => setApiKey(e.target.value)}
+                                    placeholder="sk-or-..."
+                                    className="w-full p-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-gray-600"
+                                />
+                                <Key size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                            </div>
+                            <p className="text-xs text-gray-500">
+                                Your key is stored locally in your browser.
+                            </p>
                         </div>
-                        <p className="text-xs text-gray-500">
-                            Your key is stored locally in your browser.
-                        </p>
-                    </div>
 
-                    <div className="mb-4">
-                        <label className="text-sm font-medium text-gray-300 block mb-2">Model</label>
-                        <select
-                            value={model}
-                            onChange={(e) => setModel(e.target.value)}
-                            className="model-select"
-                        >
-                            {AVAILABLE_MODELS.map(m => (
-                                <option key={m.id} value={m.id}>{m.name}</option>
-                            ))}
-                        </select>
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm font-medium text-gray-300">Model</label>
+                            <div className="relative">
+                                <select
+                                    value={model}
+                                    onChange={(e) => setModel(e.target.value)}
+                                    className="w-full p-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none cursor-pointer"
+                                >
+                                    {AVAILABLE_MODELS.map(m => (
+                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                    ))}
+                                </select>
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     {error && (
-                        <div className="error-msg">
-                            <AlertCircle size={16} className="inline mr-2" />
+                        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl mb-4 flex items-center gap-2 text-sm">
+                            <AlertCircle size={16} />
                             {error}
                         </div>
                     )}
@@ -106,16 +122,20 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ imageData, onC
                     <button
                         onClick={handleAnalyze}
                         disabled={loading || !apiKey}
-                        className="analyze-btn"
+                        className="w-full p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600 shadow-lg shadow-blue-900/20"
                     >
-                        {loading ? <div className="loading-spinner" /> : <Sparkles size={18} />}
+                        {loading ? (
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                            <Sparkles size={18} />
+                        )}
                         {loading ? 'Analyzing...' : 'Analyze Chart'}
                     </button>
 
                     {result && (
-                        <div className="result-section">
-                            <h3 className="text-lg font-semibold mb-2">Analysis Result</h3>
-                            <div className="result-content">
+                        <div className="mt-6 pt-6 border-t border-gray-800">
+                            <h3 className="text-lg font-semibold text-white mb-3">Analysis Result</h3>
+                            <div className="bg-gray-950 p-4 rounded-xl text-gray-300 text-sm leading-relaxed whitespace-pre-wrap border border-gray-800">
                                 {result}
                             </div>
                         </div>
