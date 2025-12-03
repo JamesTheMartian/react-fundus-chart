@@ -26,8 +26,8 @@ interface FundusCanvasProps {
 }
 
 const CIRCLES = {
-    EQUATOR: 0.33,
-    ORA_SERRATA: 0.66,
+    EQUATOR: 0.6,
+    ORA_SERRATA: 0.8,
     PARS_PLANA: 1.0
 };
 
@@ -57,7 +57,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         }
 
         ctx.strokeStyle = '#e5e7eb'; // Light gray for grid
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 2;
         ctx.fillStyle = '#ffffff';
 
         // Clear background
@@ -78,7 +78,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
 
         for (let i = 0; i < 12; i++) {
             const angle = (i * 30) * (Math.PI / 180);
-            const startR = radius * 0.1; // Don't start exactly at center to keep fovea clear
+            const startR = radius * 0.4; // Don't start exactly at center to keep fovea clear
             const endR = radius * CIRCLES.PARS_PLANA;
 
             ctx.beginPath();
