@@ -143,7 +143,7 @@ function App() {
 
       <main className="flex-1 max-w-7xl mx-auto w-full p-4 sm:p-6 lg:p-8 flex flex-col lg:flex-row gap-6 lg:gap-8 items-start justify-center">
         <div className="flex-1 w-full flex justify-center items-start">
-          <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-1 sm:p-4 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
+          <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-1 sm:p-4 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] max-w-full">
             <FundusCanvas
               ref={canvasRef}
               width={600}
