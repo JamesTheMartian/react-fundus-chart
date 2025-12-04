@@ -1,4 +1,4 @@
-export type ToolType = 'pen' | 'brush' | 'pattern' | 'eraser' | 'fill';
+export type ToolType = 'pen' | 'brush' | 'pattern' | 'eraser' | 'fill' | 'select';
 export type EyeSide = 'OD' | 'OS'; // OD = Right Eye, OS = Left Eye
 
 export type ColorCode =
@@ -14,14 +14,32 @@ export interface Point {
   y: number;
 }
 
-export interface Stroke {
+export type ElementType = 'stroke' | 'hemorrhage' | 'tear' | 'spot' | 'circle';
+
+export interface FundusElement {
   id: string;
-  points: Point[];
+  type: ElementType;
+  points?: Point[]; // For strokes
+  position?: Point; // For shapes (center)
+  radius?: number; // For circles
+  width?: number; // For ellipses/strokes
+  height?: number; // For ellipses
+  rotation?: number;
   color: ColorCode;
-  width: number;
-  toolType: ToolType;
-  timestamp: number;
+  toolType?: ToolType; // Keep for backward compatibility/stroke rendering
+  visible: boolean;
+  layer: string; // 'retina', 'vitreous', etc.
+  zDepth?: number; // For 3D positioning (0 = retina, >0 = vitreous)
   pathology?: PathologyType;
+  timestamp: number;
+  name?: string;
+  description?: string;
+  locked?: boolean;
+}
+
+export interface Stroke extends FundusElement {
+  type: 'stroke';
+  points: Point[];
 }
 
 export interface CanvasState {
@@ -47,7 +65,7 @@ export const TOOL_DESCRIPTIONS: Record<ColorCode, string> = {
   black: 'Sclerosed vessels, Scars',
 };
 
-export type PathologyType = 'normal' | 'hemorrhage' | 'tear' | 'detachment' | 'hole' | 'drusen' | 'cotton_wool' | 'hard_exudate' | 'edema' | 'lattice';
+export type PathologyType = 'normal' | 'hemorrhage' | 'vitreous_hemorrhage' | 'tear' | 'detachment' | 'hole' | 'drusen' | 'cotton_wool' | 'hard_exudate' | 'edema' | 'lattice';
 
 export interface PathologyPreset {
   label: string;
@@ -59,6 +77,7 @@ export interface PathologyPreset {
 export const PATHOLOGY_PRESETS: Record<PathologyType, PathologyPreset> = {
   normal: { label: 'Normal Drawing', color: 'black', tool: 'pen', width: 2 },
   hemorrhage: { label: 'Hemorrhage', color: 'red', tool: 'brush', width: 15 },
+  vitreous_hemorrhage: { label: 'Vitreous Hemorrhage', color: 'red', tool: 'brush', width: 30 },
   tear: { label: 'Retinal Tear', color: 'red', tool: 'pen', width: 3 },
   detachment: { label: 'Retinal Detachment', color: 'black', tool: 'brush', width: 20 },
   hole: { label: 'Retinal Hole', color: 'red', tool: 'pen', width: 2 },

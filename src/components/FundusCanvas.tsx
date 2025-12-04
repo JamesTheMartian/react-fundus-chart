@@ -1,15 +1,18 @@
 import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
-import type { Stroke, ColorCode, ToolType, Point, EyeSide, PathologyType } from '../utils/types';
+import type { FundusElement, ColorCode, ToolType, Point, EyeSide, PathologyType } from '../utils/types';
 import { MEDICAL_COLORS } from '../utils/types';
 import './FundusCanvas.css';
 
 export interface FundusCanvasRef {
     exportImage: () => void;
     getDataURL: () => string;
-    getStrokes: () => Stroke[];
+    getStrokes: () => FundusElement[];
+    addElement: (element: FundusElement) => void;
     undo: () => void;
     redo: () => void;
     clear: () => void;
+    updateElement: (id: string, updates: Partial<FundusElement>) => void;
+    deleteElement: (id: string) => void;
 }
 
 interface FundusCanvasProps {
@@ -23,6 +26,9 @@ interface FundusCanvasProps {
     eyeSide: EyeSide;
     onUndo?: () => void;
     onClear?: () => void;
+    onElementsChange?: (elements: FundusElement[]) => void;
+    onSelectionChange?: (id: string | null) => void;
+    selectedElementId?: string | null;
 }
 
 const CIRCLES = {
@@ -40,11 +46,16 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
     activePathology,
     isInverted,
     eyeSide,
+    onElementsChange,
+    onSelectionChange,
+    selectedElementId: propSelectedElementId,
 }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [strokes, setStrokes] = useState<Stroke[]>([]);
-    const [redoStack, setRedoStack] = useState<Stroke[]>([]);
-    const [currentStroke, setCurrentStroke] = useState<Stroke | null>(null);
+    const [elements, setElements] = useState<FundusElement[]>([]);
+    const [redoStack, setRedoStack] = useState<FundusElement[]>([]);
+    const [currentElement, setCurrentElement] = useState<FundusElement | null>(null);
+    const [hoveredElementId, setHoveredElementId] = useState<string | null>(null);
+    const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
 
     const drawBackground = (ctx: CanvasRenderingContext2D, center: Point, radius: number, inverted: boolean) => {
         ctx.save();
@@ -146,25 +157,54 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         ctx.restore();
     };
 
-    const drawStroke = (ctx: CanvasRenderingContext2D, stroke: Stroke, inverted: boolean) => {
-        if (stroke.points.length < 2) return;
+    const isPointInElement = (point: Point, element: FundusElement): boolean => {
+        if (element.type === 'stroke') {
+            if (!element.points) return false;
+            // Check distance to any point in the stroke
+            // Optimization: Check bounding box first?
+            // For now, simple distance check
+            const threshold = (element.width || 2) + 5; // Hit radius
+            return element.points.some(p => {
+                const dx = p.x - point.x;
+                const dy = p.y - point.y;
+                return Math.sqrt(dx * dx + dy * dy) < threshold;
+            });
+        } else if (element.type === 'hemorrhage' || element.type === 'spot') {
+            if (!element.position) return false;
+            const dx = element.position.x - point.x;
+            const dy = element.position.y - point.y;
+            const rx = (element.width || 10) / 2;
+            const ry = (element.height || 10) / 2;
+            // Ellipse equation: (x^2/a^2) + (y^2/b^2) <= 1
+            // Ignoring rotation for hit detection simplicity for now
+            return (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1;
+        }
+        return false;
+    };
+
+    const drawElement = (ctx: CanvasRenderingContext2D, element: FundusElement, inverted: boolean) => {
+        if (element.type === 'stroke' && (!element.points || element.points.length < 2)) return;
 
         ctx.save();
 
+        const width = element.width || 2;
+        const color = MEDICAL_COLORS[element.color];
+
         // Handle Eraser
-        if (stroke.toolType === 'eraser') {
+        if (element.toolType === 'eraser') {
             ctx.globalCompositeOperation = 'destination-out';
-            ctx.lineWidth = stroke.width * 2; // Eraser is usually thicker
+            ctx.lineWidth = width * 2;
         } else {
             ctx.globalCompositeOperation = 'source-over';
-            ctx.strokeStyle = MEDICAL_COLORS[stroke.color];
-            ctx.lineWidth = stroke.width;
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = width;
         }
 
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        const center = { x: width / 2, y: height / 2 };
+        const center = { x: 600 / 2, y: 600 / 2 }; // Assuming 600x600 for now, or use props
 
         if (inverted) {
             ctx.translate(center.x, center.y);
@@ -172,48 +212,63 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             ctx.translate(-center.x, -center.y);
         }
 
-        if (stroke.toolType === 'pen' || stroke.toolType === 'brush' || stroke.toolType === 'eraser') {
-            if (stroke.toolType === 'brush') {
-                ctx.globalAlpha = 0.5; // Semi-transparent for fills
-                ctx.lineWidth = stroke.width * 2;
-            } else if (stroke.toolType === 'eraser') {
-                ctx.globalAlpha = 1.0;
-            } else {
-                ctx.globalAlpha = 1.0;
+        // Vitreous Layer Handling
+        if (element.layer === 'vitreous') {
+            ctx.globalAlpha = 0.4;
+            ctx.filter = 'blur(4px)';
+        } else {
+            ctx.globalAlpha = 1.0;
+            ctx.filter = 'none';
+        }
+
+        if (element.type === 'stroke') {
+            if (element.toolType === 'brush') {
+                ctx.globalAlpha = element.layer === 'vitreous' ? 0.3 : 0.5;
+                ctx.lineWidth = width * 2;
             }
 
-            ctx.beginPath();
-            ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
-            for (let i = 1; i < stroke.points.length; i++) {
-                ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+            if (element.points) {
+                ctx.beginPath();
+                ctx.moveTo(element.points[0].x, element.points[0].y);
+                for (let i = 1; i < element.points.length; i++) {
+                    ctx.lineTo(element.points[i].x, element.points[i].y);
+                }
+                ctx.stroke();
             }
-            ctx.stroke();
-        } else if (stroke.toolType === 'pattern') {
-            ctx.beginPath();
-            // Simple pattern: Dotted line for now
+        } else if (element.type === 'hemorrhage' || element.type === 'spot') {
+            if (element.position) {
+                ctx.beginPath();
+                ctx.ellipse(element.position.x, element.position.y, (element.width || 10) / 2, (element.height || 10) / 2, element.rotation || 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Selection/Hover Outline
+        if (element.id === selectedElementId || element.id === hoveredElementId) {
+            ctx.shadowBlur = 0;
+            ctx.shadowColor = 'transparent';
+            ctx.lineWidth = (width || 2) + 4;
+            ctx.strokeStyle = element.id === selectedElementId ? '#2563eb' : '#0ea5e9'; // Blue for select, Sky for hover
             ctx.setLineDash([5, 5]);
-            ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
-            for (let i = 1; i < stroke.points.length; i++) {
-                ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+
+            if (element.type === 'stroke' && element.points) {
+                ctx.beginPath();
+                ctx.moveTo(element.points[0].x, element.points[0].y);
+                for (let i = 1; i < element.points.length; i++) {
+                    ctx.lineTo(element.points[i].x, element.points[i].y);
+                }
+                ctx.stroke();
+            } else if ((element.type === 'hemorrhage' || element.type === 'spot') && element.position) {
+                ctx.beginPath();
+                ctx.ellipse(element.position.x, element.position.y, (element.width || 10) / 2 + 2, (element.height || 10) / 2 + 2, element.rotation || 0, 0, Math.PI * 2);
+                ctx.stroke();
             }
-            ctx.stroke();
             ctx.setLineDash([]);
-        } else if (stroke.toolType === 'fill') {
-            ctx.globalAlpha = 0.5;
-            ctx.fillStyle = MEDICAL_COLORS[stroke.color];
-            ctx.beginPath();
-            ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
-            for (let i = 1; i < stroke.points.length; i++) {
-                ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
-            }
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke(); // Optional: Draw border as well
-            ctx.globalAlpha = 1.0;
         }
 
         ctx.restore();
     };
+
 
     useImperativeHandle(ref, () => ({
         exportImage: () => {
@@ -241,7 +296,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             const strokeCtx = strokeCanvas.getContext('2d');
 
             if (strokeCtx) {
-                strokes.forEach(s => drawStroke(strokeCtx, s, false));
+                elements.forEach(s => drawElement(strokeCtx, s, false));
 
                 // 3. Composite the strokes layer onto the main context
                 tempCtx.drawImage(strokeCanvas, 0, 0);
@@ -275,32 +330,35 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             const strokeCtx = strokeCanvas.getContext('2d');
 
             if (strokeCtx) {
-                strokes.forEach(s => drawStroke(strokeCtx, s, false));
+                elements.forEach(s => drawElement(strokeCtx, s, false));
                 // 3. Composite
                 tempCtx.drawImage(strokeCanvas, 0, 0);
             }
 
             return tempCanvas.toDataURL('image/png');
         },
-        getStrokes: () => strokes,
+        getStrokes: () => elements,
+        addElement: (element: FundusElement) => {
+            setElements(prev => [...prev, element]);
+        },
         undo: () => {
-            setStrokes(prev => {
+            setElements(prev => {
                 if (prev.length === 0) return prev;
-                const newStrokes = [...prev];
-                const lastStroke = newStrokes.pop();
-                if (lastStroke) {
-                    setRedoStack(stack => [...stack, lastStroke]);
+                const newElements = [...prev];
+                const lastElement = newElements.pop();
+                if (lastElement) {
+                    setRedoStack(stack => [...stack, lastElement]);
                 }
-                return newStrokes;
+                return newElements;
             });
         },
         redo: () => {
             setRedoStack(prev => {
                 if (prev.length === 0) return prev;
                 const newStack = [...prev];
-                const strokeToRestore = newStack.pop();
-                if (strokeToRestore) {
-                    setStrokes(strokes => [...strokes, strokeToRestore]);
+                const elementToRestore = newStack.pop();
+                if (elementToRestore) {
+                    setElements(elements => [...elements, elementToRestore]);
                 }
                 return newStack;
             });
@@ -308,15 +366,37 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         clear: () => {
             // Optional: Save current state to history before clearing if we want "Undo Clear"
             // For now, simple clear
-            setStrokes([]);
+            setElements([]);
             setRedoStack([]);
+        },
+        updateElement: (id: string, updates: Partial<FundusElement>) => {
+            setElements(prev => prev.map(el => el.id === id ? { ...el, ...updates } : el));
+        },
+        deleteElement: (id: string) => {
+            setElements(prev => prev.filter(el => el.id !== id));
+            if (selectedElementId === id) setSelectedElementId(null);
         }
     }));
 
     useEffect(() => {
         // Debugging undo/redo stacks
         // console.log('Strokes:', strokes.length, 'RedoStack:', redoStack.length);
-    }, [strokes, redoStack]);
+        if (onElementsChange) {
+            onElementsChange(elements);
+        }
+    }, [elements, redoStack, onElementsChange]);
+
+    useEffect(() => {
+        if (onSelectionChange) {
+            onSelectionChange(selectedElementId);
+        }
+    }, [selectedElementId, onSelectionChange]);
+
+    useEffect(() => {
+        if (propSelectedElementId !== undefined) {
+            setSelectedElementId(propSelectedElementId);
+        }
+    }, [propSelectedElementId]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -342,15 +422,21 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         const layerCtx = layerCanvas.getContext('2d');
 
         if (layerCtx) {
-            strokes.forEach(s => drawStroke(layerCtx, s, isInverted));
-            if (currentStroke) {
-                drawStroke(layerCtx, currentStroke, isInverted);
+            elements.forEach(s => {
+                drawElement(layerCtx, s, isInverted);
+            });
+            if (currentElement) {
+                // Current element visibility check
+                const isVitreous = currentElement.layer === 'vitreous';
+                if ((isVitreous) || (!isVitreous)) {
+                    drawElement(layerCtx, currentElement, isInverted);
+                }
             }
             // Step 3: Composite Layer onto Main
             ctx.drawImage(layerCanvas, 0, 0);
         }
 
-    }, [width, height, isInverted, strokes, currentStroke, eyeSide]);
+    }, [width, height, isInverted, elements, currentElement, eyeSide, hoveredElementId, selectedElementId]);
 
     const getCanvasPoint = (e: React.MouseEvent | React.TouchEvent): Point => {
         const canvas = canvasRef.current;
@@ -391,37 +477,60 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
     };
 
     const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
-        e.preventDefault(); // Prevent scrolling on touch
+        e.preventDefault();
         const point = getCanvasPoint(e);
+
+        if (activeTool === 'select') {
+            // Find clicked element (reverse order for top-most)
+            const clickedElement = [...elements].reverse().find(el => isPointInElement(point, el));
+            if (clickedElement) {
+                setSelectedElementId(clickedElement.id);
+            } else {
+                setSelectedElementId(null);
+            }
+            return;
+        }
 
         // Clear redo stack on new action
         setRedoStack([]);
 
-        setCurrentStroke({
+        setCurrentElement({
             id: Date.now().toString(),
+            type: 'stroke',
             points: [point],
             color: activeColor,
             width: brushSize,
             toolType: activeTool,
             pathology: activePathology,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            visible: true,
+            layer: activePathology === 'vitreous_hemorrhage' ? 'vitreous' : 'retina',
+            zDepth: activePathology === 'vitreous_hemorrhage' ? 0.5 : 0
         });
     };
 
     const handleMove = (e: React.MouseEvent | React.TouchEvent) => {
-        if (!currentStroke) return;
         e.preventDefault();
         const point = getCanvasPoint(e);
-        setCurrentStroke(prev => prev ? {
+
+        if (activeTool === 'select') {
+            const hovered = [...elements].reverse().find(el => isPointInElement(point, el));
+            setHoveredElementId(hovered ? hovered.id : null);
+            return;
+        }
+
+        if (!currentElement) return;
+
+        setCurrentElement(prev => prev && prev.points ? {
             ...prev,
             points: [...prev.points, point]
         } : null);
     };
 
     const handleEnd = () => {
-        if (currentStroke) {
-            setStrokes(prev => [...prev, currentStroke]);
-            setCurrentStroke(null);
+        if (currentElement) {
+            setElements(prev => [...prev, currentElement]);
+            setCurrentElement(null);
         }
     };
 

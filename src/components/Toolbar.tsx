@@ -2,7 +2,7 @@ import React from 'react';
 
 import type { ColorCode, ToolType, EyeSide, PathologyType } from '../utils/types';
 import { MEDICAL_COLORS, TOOL_DESCRIPTIONS, PATHOLOGY_PRESETS } from '../utils/types';
-import { Pen, Brush, Grid, RotateCw, Trash2, Undo, Redo, Eye, Download, Eraser, Box, Sparkles, HelpCircle, PaintBucket } from 'lucide-react';
+import { Pen, Brush, Grid, RotateCw, Trash2, Undo, Redo, Eye, Download, Eraser, Box, Sparkles, HelpCircle, PaintBucket, MousePointer } from 'lucide-react';
 import './Toolbar.css';
 
 interface ToolbarProps {
@@ -79,6 +79,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <div className="toolbar-section">
                 <h3 className="toolbar-title">Tools</h3>
                 <div className="tool-buttons">
+                    <button
+                        onClick={() => setActiveTool('select')}
+                        className={`tool-btn ${activeTool === 'select' ? 'active' : ''}`}
+                        title="Select & Edit"
+                    >
+                        <MousePointer size={20} />
+                    </button>
                     <button
                         onClick={() => setActiveTool('pen')}
                         className={`tool-btn ${activeTool === 'pen' ? 'active' : ''}`}
@@ -241,6 +248,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <button onClick={onDownload} className="view-btn" style={{ marginTop: '0.5rem' }}>
                 <Download size={18} /> Download Image
             </button>
-        </div>
+        </div >
     );
 };
