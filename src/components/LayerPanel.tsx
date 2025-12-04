@@ -40,7 +40,7 @@ export const LayerPanel: React.FC<LayerPanelProps> = ({
     };
 
     return (
-        <div className="flex flex-col w-full lg:w-[250px] h-auto lg:h-full bg-gray-50 border-t lg:border-t-0 lg:border-l border-gray-200 p-4 shadow-[0_-2px_5px_rgba(0,0,0,0.05)] lg:shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">
+        <div className="flex flex-col w-full h-full bg-white p-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wider">Layers & Objects</h3>
 
             <div className="flex-1 overflow-y-auto flex flex-col gap-2 max-h-[200px] lg:max-h-none">

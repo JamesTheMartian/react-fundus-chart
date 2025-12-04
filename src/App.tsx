@@ -131,92 +131,119 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900 selection:bg-blue-100 selection:text-blue-900">
-      <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-white/70 border-b border-gray-200/50 supports-[backdrop-filter]:bg-white/60">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-baseline gap-3">
-            <h1 className="text-xl font-semibold tracking-tight text-gray-900">Retinal Fundus Charting</h1>
-            <p className="text-sm text-gray-500 font-medium">Amsler-Dubois Standard</p>
-          </div>
-        </div>
+    <div className="h-screen w-screen overflow-hidden bg-gray-50 flex flex-col lg:flex-row font-sans text-gray-900">
+      {/* Header for Mobile / Tablet - Minimal */}
+      <header className="lg:hidden h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 shrink-0 z-20">
+        <h1 className="text-sm font-semibold text-gray-900">Retinal Fundus Charting</h1>
+        <button onClick={() => setIsInverted(!isInverted)} className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
+          {isInverted ? 'Inverted' : 'Standard'}
+        </button>
       </header>
 
-      <main className="flex-1 max-w-7xl mx-auto w-full p-4 sm:p-6 lg:p-8 flex flex-col lg:flex-row gap-6 lg:gap-8 items-start justify-center">
-        <div className="flex-1 w-full flex justify-center items-start">
-          <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-1 sm:p-4 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] max-w-full">
-            <FundusCanvas
-              ref={canvasRef}
-              width={600}
-              height={600}
-              activeColor={activeColor}
-              activeTool={activeTool}
-              brushSize={brushSize}
-              activePathology={activePathology}
-              isInverted={isInverted}
-              eyeSide={eyeSide}
-              onUndo={handleUndo}
-              onClear={handleClear}
-              onElementsChange={setCurrentElements}
-              onSelectionChange={setSelectedElementId}
-              selectedElementId={selectedElementId}
-            />
-          </div>
+      {/* Left Sidebar - Toolbar */}
+      <aside className="hidden lg:flex flex-col w-80 h-full bg-white border-r border-gray-200 z-10 shrink-0 overflow-y-auto">
+        <div className="p-4 border-b border-gray-100">
+          <h1 className="text-base font-bold text-gray-900">Retinal Charting</h1>
+          <p className="text-xs text-gray-500">Pro Studio</p>
+        </div>
+        <Toolbar
+          activeColor={activeColor}
+          setActiveColor={setActiveColor}
+          activeTool={activeTool}
+          setActiveTool={setActiveTool}
+          brushSize={brushSize}
+          setBrushSize={setBrushSize}
+          activePathology={activePathology}
+          setActivePathology={handlePathologyChange}
+          detachmentHeight={detachmentHeight}
+          setDetachmentHeight={setDetachmentHeight}
+          isInverted={isInverted}
+          toggleInverted={() => setIsInverted(!isInverted)}
+          eyeSide={eyeSide}
+          setEyeSide={setEyeSide}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onClear={handleClear}
+          onDownload={handleDownload}
+          on3DView={handle3DView}
+          onAnalyze={handleAnalyze}
+          onShowLegend={() => setShowLegend(true)}
+        />
+      </aside>
+
+      {/* Center - Canvas Area */}
+      <main className="flex-1 relative bg-gray-100/50 overflow-hidden flex items-center justify-center p-4 lg:p-0">
+        {/* Canvas Container */}
+        <div className="relative shadow-2xl shadow-black/5 rounded-full lg:rounded-none overflow-hidden bg-white">
+          <FundusCanvas
+            ref={canvasRef}
+            width={600}
+            height={600}
+            activeColor={activeColor}
+            activeTool={activeTool}
+            brushSize={brushSize}
+            activePathology={activePathology}
+            isInverted={isInverted}
+            eyeSide={eyeSide}
+            onUndo={handleUndo}
+            onClear={handleClear}
+            onElementsChange={setCurrentElements}
+            onSelectionChange={setSelectedElementId}
+            selectedElementId={selectedElementId}
+          />
         </div>
 
-        <aside className="w-full lg:w-80 shrink-0 lg:sticky lg:top-24">
-          <Toolbar
-            activeColor={activeColor}
-            setActiveColor={setActiveColor}
-            activeTool={activeTool}
-            setActiveTool={setActiveTool}
-            brushSize={brushSize}
-            setBrushSize={setBrushSize}
-            activePathology={activePathology}
-            setActivePathology={handlePathologyChange}
-            detachmentHeight={detachmentHeight}
-            setDetachmentHeight={setDetachmentHeight}
-            isInverted={isInverted}
-            toggleInverted={() => setIsInverted(!isInverted)}
-            eyeSide={eyeSide}
-            setEyeSide={setEyeSide}
-            onUndo={handleUndo}
-            onRedo={handleRedo}
-            onClear={handleClear}
-            onDownload={handleDownload}
-            on3DView={handle3DView}
-            onAnalyze={handleAnalyze}
-            onShowLegend={() => setShowLegend(true)}
-          />
-        </aside>
-
-        <aside className="layer-sidebar">
-          <LayerPanel
-            elements={currentElements}
-            selectedElementId={selectedElementId}
-            onSelect={(id) => {
-              setSelectedElementId(id);
-              // Also need to tell canvas to select it?
-              // Canvas is controlled by its own internal state for selection?
-              // No, we added onSelectionChange but didn't add a prop to SET selection from outside.
-              // We should probably add a method to canvasRef or a prop.
-              // For now, let's assume clicking in LayerPanel just sets App state, 
-              // but Canvas needs to know to highlight it.
-              // We need to pass selectedElementId back to Canvas?
-              // Or use a method.
-              // Let's use a method if possible, or better, make Canvas controlled.
-              // But Canvas has internal state.
-              // Let's add `selectElement` to ref.
-              if (canvasRef.current && id) {
-                // We need to implement selectElement in FundusCanvas
-                // For now let's just update the local state and hope we can sync it.
-                // Actually, we need to update FundusCanvas to accept selectedElementId prop or method.
-              }
-            }}
-            onUpdate={handleElementUpdate}
-            onDelete={handleElementDelete}
-          />
-        </aside>
+        {/* Floating Action Bar for Canvas (Zoom/Pan controls could go here) */}
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur shadow-lg border border-gray-200 rounded-full px-4 py-2 flex gap-4 text-xs font-medium text-gray-600 lg:flex hidden">
+          <span>{eyeSide}</span>
+          <span className="w-px h-4 bg-gray-300"></span>
+          <span>{isInverted ? 'Inverted' : 'Standard'}</span>
+        </div>
       </main>
+
+      {/* Right Sidebar - Layers */}
+      <aside className="hidden lg:flex flex-col w-64 h-full bg-white border-l border-gray-200 z-10 shrink-0">
+        <LayerPanel
+          elements={currentElements}
+          selectedElementId={selectedElementId}
+          onSelect={(id) => {
+            setSelectedElementId(id);
+            if (canvasRef.current && id) {
+              // Selection logic handled via state
+            }
+          }}
+          onUpdate={handleElementUpdate}
+          onDelete={handleElementDelete}
+        />
+      </aside>
+
+      {/* Mobile Toolbar (Bottom Sheet style) */}
+      <div className="lg:hidden bg-white border-t border-gray-200 p-2 shrink-0 z-20 overflow-x-auto">
+        <Toolbar
+          activeColor={activeColor}
+          setActiveColor={setActiveColor}
+          activeTool={activeTool}
+          setActiveTool={setActiveTool}
+          brushSize={brushSize}
+          setBrushSize={setBrushSize}
+          activePathology={activePathology}
+          setActivePathology={handlePathologyChange}
+          detachmentHeight={detachmentHeight}
+          setDetachmentHeight={setDetachmentHeight}
+          isInverted={isInverted}
+          toggleInverted={() => setIsInverted(!isInverted)}
+          eyeSide={eyeSide}
+          setEyeSide={setEyeSide}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onClear={handleClear}
+          onDownload={handleDownload}
+          on3DView={handle3DView}
+          onAnalyze={handleAnalyze}
+          onShowLegend={() => setShowLegend(true)}
+        />
+      </div>
+
       {show3D && <ThreeDView textureUrl={textureUrl} elements={currentElements} detachmentHeight={detachmentHeight} onClose={() => setShow3D(false)} eyeSide={eyeSide} onAddElement={handleAddElement} />}
       {showAI && <AIAnalysisModal imageData={textureUrl} onClose={() => setShowAI(false)} />}
       <ColorLegendModal isOpen={showLegend} onClose={() => setShowLegend(false)} />
