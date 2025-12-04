@@ -51,6 +51,11 @@
   flex-shrink: 0;
 }
 
+.layer-sidebar {
+  flex-shrink: 0;
+  height: 100%;
+}
+
 @media (max-width: 900px) {
   .app-header {
     padding: 0.5rem 1rem;
@@ -86,5 +91,12 @@
     width: 100%;
     display: flex;
     justify-content: center;
+  }
+
+  .layer-sidebar {
+    width: 100%;
+    height: auto;
+    max-height: 300px;
+    /* Limit height on mobile */
   }
 }
