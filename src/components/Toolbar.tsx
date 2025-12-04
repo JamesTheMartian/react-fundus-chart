@@ -2,7 +2,7 @@ import React from 'react';
 
 import type { ColorCode, ToolType, EyeSide, PathologyType } from '../utils/types';
 import { MEDICAL_COLORS, TOOL_DESCRIPTIONS, PATHOLOGY_PRESETS } from '../utils/types';
-import { Pen, Brush, Grid, RotateCw, Trash2, Undo, Redo, Eye, Download, Eraser, Box, Sparkles, HelpCircle, PaintBucket } from 'lucide-react';
+import { Pen, Brush, Grid, RotateCw, Trash2, Undo, Redo, Eye, Download, Eraser, Box, Sparkles, HelpCircle, PaintBucket, MousePointer } from 'lucide-react';
 // import './Toolbar.css'; // Removed for Tailwind migration
 
 interface ToolbarProps {
@@ -86,6 +86,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 ml-1">Tools</h3>
                 <div className="flex gap-2">
                     {[
+                        { id: 'select', icon: MousePointer, title: 'Select' },
                         { id: 'pen', icon: Pen, title: 'Pen' },
                         { id: 'brush', icon: Brush, title: 'Brush' },
                         { id: 'pattern', icon: Grid, title: 'Pattern' },
@@ -241,6 +242,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <button onClick={onDownload} className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 transition-all mt-2">
                 <Download size={16} /> Download Image
             </button>
-        </div>
+        </div >
     );
 };

@@ -1,18 +1,20 @@
 import React, { Suspense } from 'react';
 import { Canvas, useLoader } from '@react-three/fiber';
+import type { ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
-import type { Stroke, EyeSide } from '../utils/types';
+import type { FundusElement, EyeSide, Point } from '../utils/types';
 // import './ThreeDView.css'; // Removed for Tailwind migration
 
 interface EyeModelProps {
     textureUrl: string;
-    strokes: Stroke[];
+    elements: FundusElement[];
     detachmentHeight: number;
     eyeSide: EyeSide;
+    onAddElement?: (point: Point) => void;
 }
 
-const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes, detachmentHeight, eyeSide }) => {
+const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHeight, eyeSide, onAddElement }) => {
     const texture = useLoader(THREE.TextureLoader, textureUrl);
     const materialRef = React.useRef<THREE.MeshStandardMaterial>(null);
 
@@ -29,7 +31,7 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes, detachmentHeig
         ctx.fillRect(0, 0, 512, 512);
 
         // Draw Detachment strokes in White
-        const detachmentStrokes = strokes.filter(s => s.pathology === 'detachment' || s.pathology === 'tear');
+        const detachmentStrokes = elements.filter(s => (s.type === 'stroke' || s.type === 'tear') && (s.pathology === 'detachment' || s.pathology === 'tear'));
 
         if (detachmentStrokes.length === 0) return null;
 
@@ -45,8 +47,8 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes, detachmentHeig
         ctx.shadowColor = '#FFFFFF';
 
         detachmentStrokes.forEach(stroke => {
-            if (stroke.points.length < 2) return;
-            ctx.lineWidth = stroke.width * scaleX;
+            if (!stroke.points || stroke.points.length < 2) return;
+            ctx.lineWidth = (stroke.width || 2) * scaleX;
             ctx.beginPath();
             ctx.moveTo(stroke.points[0].x * scaleX, stroke.points[0].y * scaleY);
             for (let i = 1; i < stroke.points.length; i++) {
@@ -57,7 +59,7 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes, detachmentHeig
 
         const tex = new THREE.CanvasTexture(canvas);
         return tex;
-    }, [strokes]);
+    }, [elements]);
 
     const [roughnessMap, normalMap] = useLoader(THREE.TextureLoader, [
         `${import.meta.env.BASE_URL}textures/roughness_map.jpg`,
@@ -84,6 +86,7 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes, detachmentHeig
     }, [eyeSide, roughnessMap, normalMap]);
 
     // Custom Shader Logic
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const onBeforeCompile = React.useCallback((shader: any) => {
         shader.uniforms.uTime = { value: 0 };
         shader.uniforms.uDisplacementMap = { value: displacementMap };
@@ -156,15 +159,16 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes, detachmentHeig
         );
 
         // Save reference to shader to update uniforms
-        (materialRef.current as any).userData.shader = shader;
+        if (materialRef.current) {
+            materialRef.current.userData.shader = shader;
+        }
 
     }, [displacementMap]);
 
-    // Update Uniforms when displacement map or height changes
     React.useEffect(() => {
-        if (materialRef.current && (materialRef.current as any).userData.shader) {
-            (materialRef.current as any).userData.shader.uniforms.uDisplacementMap.value = displacementMap;
-            (materialRef.current as any).userData.shader.uniforms.uDetachmentHeight.value = detachmentHeight;
+        if (materialRef.current && materialRef.current.userData.shader) {
+            materialRef.current.userData.shader.uniforms.uDisplacementMap.value = displacementMap;
+            materialRef.current.userData.shader.uniforms.uDetachmentHeight.value = detachmentHeight;
         }
     }, [displacementMap, detachmentHeight]);
 
@@ -175,8 +179,8 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes, detachmentHeig
 
         const animate = () => {
             const time = (Date.now() - startTime) / 1000;
-            if (materialRef.current && (materialRef.current as any).userData.shader) {
-                (materialRef.current as any).userData.shader.uniforms.uTime.value = time;
+            if (materialRef.current && materialRef.current.userData.shader) {
+                materialRef.current.userData.shader.uniforms.uTime.value = time;
             }
             frameId = requestAnimationFrame(animate);
         };
@@ -249,6 +253,93 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes, detachmentHeig
         return geo;
     }, []);
 
+    const handleClick = (e: ThreeEvent<MouseEvent>) => {
+        if (!onAddElement) return;
+        // e.uv is the UV coordinate of the intersection on the plane geometry
+        // Since we mapped the plane 0..1 to the texture 0..1, this is direct.
+        if (e.uv) {
+            // Convert UV to Canvas Coordinates (600x600)
+            const point: Point = {
+                x: e.uv.x * 600,
+                y: (1 - e.uv.y) * 600 // Texture Y is flipped in WebGL usually? Let's check.
+                // In Three.js UV (0,0) is bottom-left. Canvas (0,0) is top-left.
+                // So y = (1 - uv.y) * height
+            };
+            onAddElement(point);
+        }
+    };
+
+
+
+    const map2DTo3D = (p: Point, depth: number = 0.5): THREE.Vector3 => {
+        const u = p.x / 600;
+        const v = 1 - (p.y / 600);
+
+        const dx = u - 0.5;
+        const dy = v - 0.5;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const maxR = 0.5;
+        const r = Math.min(dist, maxR);
+        const theta = (r / maxR) * (Math.PI / 2);
+        const phi = Math.atan2(dy, dx);
+        const R = 2;
+
+        const R_vitreous = R - depth;
+
+        const x = R_vitreous * Math.sin(theta) * Math.cos(phi);
+        const y = R_vitreous * Math.sin(theta) * Math.sin(phi);
+        const z = -R_vitreous * Math.cos(theta);
+
+        return new THREE.Vector3(x, y, z);
+    };
+
+    // Vitreous Elements
+    const vitreousElements = React.useMemo(() => {
+        return elements.filter(e => e.layer === 'vitreous' && e.visible).map((e) => {
+            if (e.type === 'stroke' && e.points && e.points.length > 1) {
+                // Create Tube from points
+                const points3D = e.points.map(p => map2DTo3D(p, e.zDepth || 0.5));
+                const curve = new THREE.CatmullRomCurve3(points3D);
+                // Width scaling: 2D width is pixels. 3D width needs to be small.
+                // 600px -> 4 units (approx). So 1px ~ 0.006 units.
+                const width3D = (e.width || 5) * 0.01;
+
+                return (
+                    <mesh key={e.id}>
+                        <tubeGeometry args={[curve, 64, width3D, 8, false]} />
+                        <meshPhysicalMaterial
+                            color="#880000" // Darker blood red
+                            transparent
+                            opacity={0.9}
+                            roughness={1}
+                            metalness={0}
+                            transmission={0.5} // Glassy/Jelly look
+                            thickness={1}
+                            clearcoat={1.0}
+                        />
+                    </mesh>
+                );
+            } else {
+                // Fallback for single points or shapes (spheres)
+                const p = e.position || (e.points && e.points[0]) || { x: 0, y: 0 };
+                const pos = map2DTo3D(p, e.zDepth || 0.5);
+
+                return (
+                    <mesh key={e.id} position={pos}>
+                        <sphereGeometry args={[0.15, 16, 16]} />
+                        <meshPhysicalMaterial
+                            color="#880000"
+                            transparent
+                            opacity={0.8}
+                            roughness={0.2}
+                            clearcoat={1.0}
+                        />
+                    </mesh>
+                );
+            }
+        });
+    }, [elements]);
+
     return (
         <group>
             {/* The Fundus Map */}
@@ -258,12 +349,15 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes, detachmentHeig
                     map={texture}
                     roughnessMap={roughnessMap}
                     normalMap={normalMap}
-                    side={THREE.FrontSide} // We deformed it such that normals point in? Or we just look at it.
-                    roughness={1.0} // Let the map control it
-                    metalness={0} // Slight shine
+                    side={THREE.FrontSide}
+                    roughness={1.0}
+                    metalness={0}
                     onBeforeCompile={onBeforeCompile}
                 />
             </mesh>
+
+            {/* Vitreous Objects */}
+            {vitreousElements}
 
             {/* Outline / Rim */}
             <mesh rotation={[0, 0, 0]}>
@@ -283,19 +377,21 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes, detachmentHeig
             </mesh>
         </group>
     );
+
 };
 
 // import './ThreeDView.css'; // Removed for Tailwind migration
 
 interface ThreeDViewProps {
     textureUrl: string;
-    strokes: Stroke[];
+    elements: FundusElement[];
     detachmentHeight: number;
     onClose: () => void;
     eyeSide: EyeSide;
+    onAddElement?: (point: Point) => void;
 }
 
-export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, strokes, detachmentHeight, onClose, eyeSide }) => {
+export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, elements, detachmentHeight, onClose, eyeSide, onAddElement }) => {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
             <div className="w-full max-w-6xl h-[85vh] bg-gray-900 rounded-3xl overflow-hidden flex flex-col shadow-2xl border border-gray-800">
@@ -325,7 +421,7 @@ export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, strokes, det
                         <pointLight position={[0, 0, 2]} intensity={0.5} color="#ffffff" />
 
                         <Suspense fallback={<Html center><div className="text-white">Loading 3D Model...</div></Html>}>
-                            <EyeModel key={textureUrl} textureUrl={textureUrl} strokes={strokes} detachmentHeight={detachmentHeight} eyeSide={eyeSide} />
+                            <EyeModel key={textureUrl} textureUrl={textureUrl} elements={elements} detachmentHeight={detachmentHeight} eyeSide={eyeSide} onAddElement={onAddElement} />
                         </Suspense>
 
                         <OrbitControls
