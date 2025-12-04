@@ -2,7 +2,7 @@ import React from 'react';
 
 import type { ColorCode, ToolType, EyeSide, PathologyType } from '../utils/types';
 import { MEDICAL_COLORS, TOOL_DESCRIPTIONS, PATHOLOGY_PRESETS } from '../utils/types';
-import { Pen, Brush, Grid, RotateCw, Trash2, Undo, Redo, Eye, Download, Eraser, Box, Sparkles, HelpCircle } from 'lucide-react';
+import { Pen, Brush, Grid, RotateCw, Trash2, Undo, Redo, Eye, Download, Eraser, Box, Sparkles, HelpCircle, PaintBucket } from 'lucide-react';
 // import './Toolbar.css'; // Removed for Tailwind migration
 
 interface ToolbarProps {
@@ -60,8 +60,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                     <button
                         onClick={() => setEyeSide('OD')}
                         className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium transition-all ${eyeSide === 'OD'
-                                ? 'bg-white text-gray-900 shadow-sm'
-                                : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
                             }`}
                         title="Right Eye (OD)"
                     >
@@ -70,8 +70,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                     <button
                         onClick={() => setEyeSide('OS')}
                         className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium transition-all ${eyeSide === 'OS'
-                                ? 'bg-white text-gray-900 shadow-sm'
-                                : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
                             }`}
                         title="Left Eye (OS)"
                     >
@@ -89,14 +89,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                         { id: 'pen', icon: Pen, title: 'Pen' },
                         { id: 'brush', icon: Brush, title: 'Brush' },
                         { id: 'pattern', icon: Grid, title: 'Pattern' },
+                        { id: 'fill', icon: PaintBucket, title: 'Fill Shape' },
                         { id: 'eraser', icon: Eraser, title: 'Eraser' }
                     ].map((tool) => (
                         <button
                             key={tool.id}
                             onClick={() => setActiveTool(tool.id as ToolType)}
                             className={`flex-1 p-3 rounded-xl flex items-center justify-center transition-all active:scale-95 ${activeTool === tool.id
-                                    ? 'bg-blue-50 text-blue-600 shadow-inner ring-1 ring-blue-100'
-                                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                                ? 'bg-blue-50 text-blue-600 shadow-inner ring-1 ring-blue-100'
+                                : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                                 }`}
                             title={tool.title}
                         >
@@ -182,8 +183,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                             key={color}
                             onClick={() => setActiveColor(color)}
                             className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${activeColor === color
-                                    ? 'border-gray-900 scale-110 shadow-md'
-                                    : 'border-transparent hover:border-gray-200'
+                                ? 'border-gray-900 scale-110 shadow-md'
+                                : 'border-transparent hover:border-gray-200'
                                 }`}
                             style={{ backgroundColor: MEDICAL_COLORS[color] }}
                             title={TOOL_DESCRIPTIONS[color]}
@@ -203,8 +204,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                     <button
                         onClick={toggleInverted}
                         className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-sm font-medium transition-all ${isInverted
-                                ? 'bg-blue-50 border-blue-200 text-blue-700'
-                                : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                            ? 'bg-blue-50 border-blue-200 text-blue-700'
+                            : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
                             }`}
                     >
                         <RotateCw size={16} className={`transition-transform duration-500 ${isInverted ? 'rotate-180' : ''}`} />

@@ -131,13 +131,13 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         // OS -> 9 o'clock -> PI radians
 
         const discAngle = eyeSide === 'OD' ? 0 : Math.PI;
-        const discDist = radius * 0.4;
+        const discDist = radius * 0.8;
 
-        const discX = center.x + Math.cos(discAngle) * discDist;
-        const discY = center.y + Math.sin(discAngle) * discDist;
+        const discX = center.x - 20 + Math.cos(discAngle) * discDist;
+        const discY = center.y - 20 + Math.sin(discAngle) * discDist;
 
         ctx.beginPath();
-        ctx.ellipse(discX, discY, 15, 20, 0, 0, Math.PI * 2);
+        ctx.ellipse(discX, discY, 30, 40, 0, 0, Math.PI * 2);
         ctx.fillStyle = '#ffecb3'; // Light yellow
         ctx.fill();
         ctx.stroke();
@@ -198,6 +198,18 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             }
             ctx.stroke();
             ctx.setLineDash([]);
+        } else if (stroke.toolType === 'fill') {
+            ctx.globalAlpha = 0.5;
+            ctx.fillStyle = MEDICAL_COLORS[stroke.color];
+            ctx.beginPath();
+            ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+            for (let i = 1; i < stroke.points.length; i++) {
+                ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke(); // Optional: Draw border as well
+            ctx.globalAlpha = 1.0;
         }
 
         ctx.restore();

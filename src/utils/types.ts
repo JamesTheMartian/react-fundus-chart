@@ -1,4 +1,4 @@
-export type ToolType = 'pen' | 'brush' | 'pattern' | 'eraser';
+export type ToolType = 'pen' | 'brush' | 'pattern' | 'eraser' | 'fill';
 export type EyeSide = 'OD' | 'OS'; // OD = Right Eye, OS = Left Eye
 
 export type ColorCode =
