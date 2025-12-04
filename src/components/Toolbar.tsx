@@ -2,7 +2,7 @@ import React from 'react';
 
 import type { ColorCode, ToolType, EyeSide, PathologyType } from '../utils/types';
 import { MEDICAL_COLORS, TOOL_DESCRIPTIONS, PATHOLOGY_PRESETS } from '../utils/types';
-import { Pen, Brush, Grid, RotateCw, Trash2, Undo, Redo, Eye, Download, Eraser, Box, Sparkles, HelpCircle } from 'lucide-react';
+import { Pen, Brush, Grid, RotateCw, Trash2, Undo, Redo, Eye, Download, Eraser, Box, Sparkles, HelpCircle, PaintBucket } from 'lucide-react';
 import './Toolbar.css';
 
 interface ToolbarProps {
@@ -99,6 +99,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                         title="Pattern"
                     >
                         <Grid size={20} />
+                    </button>
+                    <button
+                        onClick={() => setActiveTool('fill')}
+                        className={`tool-btn ${activeTool === 'fill' ? 'active' : ''}`}
+                        title="Fill Shape"
+                    >
+                        <PaintBucket size={20} />
                     </button>
                     <button
                         onClick={() => setActiveTool('eraser')}

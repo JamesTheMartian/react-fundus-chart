@@ -198,6 +198,18 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             }
             ctx.stroke();
             ctx.setLineDash([]);
+        } else if (stroke.toolType === 'fill') {
+            ctx.globalAlpha = 0.5;
+            ctx.fillStyle = MEDICAL_COLORS[stroke.color];
+            ctx.beginPath();
+            ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+            for (let i = 1; i < stroke.points.length; i++) {
+                ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke(); // Optional: Draw border as well
+            ctx.globalAlpha = 1.0;
         }
 
         ctx.restore();
