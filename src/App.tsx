@@ -131,7 +131,7 @@ function App() {
           />
         </aside>
       </main>
-      {show3D && <ThreeDView textureUrl={textureUrl} strokes={currentStrokes} detachmentHeight={detachmentHeight} onClose={() => setShow3D(false)} />}
+      {show3D && <ThreeDView textureUrl={textureUrl} strokes={currentStrokes} detachmentHeight={detachmentHeight} onClose={() => setShow3D(false)} eyeSide={eyeSide} />}
       {showAI && <AIAnalysisModal imageData={textureUrl} onClose={() => setShowAI(false)} />}
       <ColorLegendModal isOpen={showLegend} onClose={() => setShowLegend(false)} />
     </div>

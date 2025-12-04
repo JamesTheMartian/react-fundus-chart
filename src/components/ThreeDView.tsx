@@ -2,16 +2,17 @@ import React, { Suspense } from 'react';
 import { Canvas, useLoader } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
-import type { Stroke } from '../utils/types';
+import type { Stroke, EyeSide } from '../utils/types';
 import './ThreeDView.css';
 
 interface EyeModelProps {
     textureUrl: string;
     strokes: Stroke[];
     detachmentHeight: number;
+    eyeSide: EyeSide;
 }
 
-const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes, detachmentHeight }) => {
+const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes, detachmentHeight, eyeSide }) => {
     const texture = useLoader(THREE.TextureLoader, textureUrl);
     const materialRef = React.useRef<THREE.MeshStandardMaterial>(null);
 
@@ -57,6 +58,30 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes, detachmentHeig
         const tex = new THREE.CanvasTexture(canvas);
         return tex;
     }, [strokes]);
+
+    const [roughnessMap, normalMap] = useLoader(THREE.TextureLoader, [
+        `${import.meta.env.BASE_URL}textures/roughness_map.jpg`,
+        `${import.meta.env.BASE_URL}textures/normal_map.jpg`
+    ]);
+
+    React.useEffect(() => {
+        if (eyeSide === 'OD') {
+            roughnessMap.wrapS = THREE.RepeatWrapping;
+            roughnessMap.repeat.x = -1;
+            roughnessMap.offset.x = 1;
+
+            normalMap.wrapS = THREE.RepeatWrapping;
+            normalMap.repeat.x = -1;
+            normalMap.offset.x = 1;
+        } else {
+            roughnessMap.repeat.x = 1;
+            roughnessMap.offset.x = 0;
+            normalMap.repeat.x = 1;
+            normalMap.offset.x = 0;
+        }
+        roughnessMap.needsUpdate = true;
+        normalMap.needsUpdate = true;
+    }, [eyeSide, roughnessMap, normalMap]);
 
     // Custom Shader Logic
     const onBeforeCompile = React.useCallback((shader: any) => {
@@ -231,8 +256,10 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, strokes, detachmentHeig
                 <meshStandardMaterial
                     ref={materialRef}
                     map={texture}
+                    roughnessMap={roughnessMap}
+                    normalMap={normalMap}
                     side={THREE.FrontSide} // We deformed it such that normals point in? Or we just look at it.
-                    roughness={0.4} // Wetter surface
+                    roughness={1.0} // Let the map control it
                     metalness={0} // Slight shine
                     onBeforeCompile={onBeforeCompile}
                 />
@@ -263,9 +290,10 @@ interface ThreeDViewProps {
     strokes: Stroke[];
     detachmentHeight: number;
     onClose: () => void;
+    eyeSide: EyeSide;
 }
 
-export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, strokes, detachmentHeight, onClose }) => {
+export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, strokes, detachmentHeight, onClose, eyeSide }) => {
     return (
         <div className="three-d-modal-overlay">
             <div className="three-d-modal-content">
@@ -290,7 +318,7 @@ export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, strokes, det
                         <pointLight position={[0, 0, 2]} intensity={0.5} color="#ffffff" />
 
                         <Suspense fallback={<Html center>Loading 3D Model...</Html>}>
-                            <EyeModel key={textureUrl} textureUrl={textureUrl} strokes={strokes} detachmentHeight={detachmentHeight} />
+                            <EyeModel key={textureUrl} textureUrl={textureUrl} strokes={strokes} detachmentHeight={detachmentHeight} eyeSide={eyeSide} />
                         </Suspense>
 
                         <OrbitControls
