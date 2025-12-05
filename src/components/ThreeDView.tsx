@@ -6,6 +6,113 @@ import * as THREE from 'three';
 import type { FundusElement, EyeSide, Point } from '../utils/types';
 // import './ThreeDView.css'; // Removed for Tailwind migration
 
+import { Sun } from 'lucide-react';
+
+interface LightControlProps {
+    rotation: number;
+    onChange: (rotation: number) => void;
+}
+
+const LightControl: React.FC<LightControlProps> = ({ rotation, onChange }) => {
+    const containerRef = React.useRef<HTMLDivElement>(null);
+    const isDraggingRef = React.useRef(false);
+    const [isDragging, setIsDragging] = React.useState(false);
+
+    const handleMove = React.useCallback((clientX: number, clientY: number) => {
+        if (!containerRef.current) return;
+        const rect = containerRef.current.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        const dx = clientX - centerX;
+        const dy = clientY - centerY;
+
+        let angle = Math.atan2(dy, dx) * (180 / Math.PI);
+        if (angle < 0) angle += 360;
+
+        onChange(angle);
+    }, [onChange]);
+
+    const onStart = (clientX: number, clientY: number) => {
+        isDraggingRef.current = true;
+        setIsDragging(true);
+        handleMove(clientX, clientY);
+    };
+
+    const onMouseDown = (e: React.MouseEvent) => {
+        e.preventDefault();
+        onStart(e.clientX, e.clientY);
+    };
+
+    const onTouchStart = (e: React.TouchEvent) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        onStart(touch.clientX, touch.clientY);
+    };
+
+    React.useEffect(() => {
+        const onMouseMove = (e: MouseEvent) => {
+            if (isDraggingRef.current) {
+                handleMove(e.clientX, e.clientY);
+            }
+        };
+        const onTouchMove = (e: TouchEvent) => {
+            if (isDraggingRef.current) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                handleMove(touch.clientX, touch.clientY);
+            }
+        };
+        const onEnd = () => {
+            isDraggingRef.current = false;
+            setIsDragging(false);
+        };
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onEnd);
+        window.addEventListener('touchmove', onTouchMove, { passive: false });
+        window.addEventListener('touchend', onEnd);
+        return () => {
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onEnd);
+            window.removeEventListener('touchmove', onTouchMove);
+            window.removeEventListener('touchend', onEnd);
+        };
+    }, [handleMove]);
+
+    // Calculate handle position
+    const radius = 24; // px
+    const rad = rotation * (Math.PI / 180);
+    const x = Math.cos(rad) * radius;
+    const y = Math.sin(rad) * radius;
+
+    return (
+        <div
+            ref={containerRef}
+            className="relative w-16 h-16 flex items-center justify-center cursor-pointer touch-none"
+            onMouseDown={onMouseDown}
+            onTouchStart={onTouchStart}
+        >
+            {/* Ring */}
+            <div className={`absolute inset-0 rounded-full border-2 transition-colors ${isDragging ? 'border-blue-500/50' : 'border-gray-700'}`} />
+
+            {/* Center Dot */}
+            <div className="w-2 h-2 bg-gray-600 rounded-full" />
+
+            {/* Handle */}
+            <div
+                className={`absolute w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg transform -translate-x-1/2 -translate-y-1/2 transition-all duration-150 ${isDragging ? 'scale-125 shadow-blue-500/50 ring-2 ring-blue-400/30' : ''}`}
+                style={{
+                    left: `calc(50% + ${x}px)`,
+                    top: `calc(50% + ${y}px)`,
+                }}
+            >
+                <Sun size={14} className="text-white" />
+            </div>
+        </div>
+    );
+};
+
 interface EyeModelProps {
     textureUrl: string;
     elements: FundusElement[];
@@ -255,19 +362,16 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
 
     const handleClick = (e: ThreeEvent<MouseEvent>) => {
         if (!onAddElement) return;
-        // e.uv is the UV coordinate of the intersection on the plane geometry
-        // Since we mapped the plane 0..1 to the texture 0..1, this is direct.
         if (e.uv) {
-            // Convert UV to Canvas Coordinates (600x600)
             const point: Point = {
                 x: e.uv.x * 600,
-                y: (1 - e.uv.y) * 600 // Texture Y is flipped in WebGL usually? Let's check.
-                // In Three.js UV (0,0) is bottom-left. Canvas (0,0) is top-left.
-                // So y = (1 - uv.y) * height
+                y: (1 - e.uv.y) * 600
             };
             onAddElement(point);
         }
     };
+
+
 
 
 
@@ -343,7 +447,7 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
     return (
         <group>
             {/* The Fundus Map */}
-            <mesh geometry={geometry}>
+            <mesh geometry={geometry} onClick={handleClick}>
                 <meshStandardMaterial
                     ref={materialRef}
                     map={texture}
@@ -392,25 +496,40 @@ interface ThreeDViewProps {
 }
 
 export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, elements, detachmentHeight, onClose, eyeSide, onAddElement }) => {
+    const [lightRotation, setLightRotation] = React.useState(45);
+
+    // Calculate light position based on rotation
+    const lightX = 7 * Math.cos((lightRotation * Math.PI) / 180);
+    const lightY = 7 * Math.sin((lightRotation * Math.PI) / 180);
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
             <div className="w-full max-w-6xl h-[85vh] bg-gray-900 rounded-3xl overflow-hidden flex flex-col shadow-2xl border border-gray-800">
                 <div className="p-4 bg-gray-950 flex justify-between items-center border-b border-gray-800">
                     <h2 className="text-lg font-semibold text-white">3D Fundus Visualization</h2>
-                    <button
-                        className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors text-sm"
-                        onClick={onClose}
-                    >
-                        Close
-                    </button>
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3 bg-gray-900 px-4 py-2 rounded-xl border border-gray-800">
+                            <div className="flex flex-col gap-1">
+                                <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Light Direction</span>
+                                <span className="text-gray-500 text-[10px]">Drag to rotate</span>
+                            </div>
+                            <LightControl rotation={lightRotation} onChange={setLightRotation} />
+                        </div>
+                        <button
+                            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors text-sm"
+                            onClick={onClose}
+                        >
+                            Close
+                        </button>
+                    </div>
                 </div>
                 <div className="flex-1 w-full h-full bg-black relative">
                     {/* Position camera to look into the hemisphere */}
                     <Canvas camera={{ position: [0, 0, 5], fov: 50 }} shadows>
-                        <color attach="background" args={['#000000']} />
+                        <color attach="background" args={['#050511']} />
                         <ambientLight intensity={0.4} />
                         <directionalLight
-                            position={[5, 5, 5]}
+                            position={[lightX, lightY, 5]}
                             intensity={1.0}
                             castShadow
                         />
@@ -429,7 +548,7 @@ export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, elements, de
                             minDistance={1}
                             maxDistance={8}
                             // Limit rotation so user doesn't get lost behind the eye
-                            minPolarAngle={0}
+                            minPolarAngle={Math.PI / 3}
                             maxPolarAngle={Math.PI / 1.5}
                         />
                     </Canvas>
