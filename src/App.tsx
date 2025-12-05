@@ -6,6 +6,7 @@ import { ThreeDView } from './components/ThreeDView';
 import { AIAnalysisModal } from './components/AIAnalysisModal';
 import { ColorLegendModal } from './components/ColorLegendModal';
 import { LayerPanel } from './components/LayerPanel';
+import { FeedbackPrompt } from './components/FeedbackPrompt';
 import type { ColorCode, ToolType, EyeSide, PathologyType, FundusElement, Point } from './utils/types';
 import { PATHOLOGY_PRESETS } from './utils/types';
 // import './App.css'; // Removed for Tailwind migration
@@ -24,12 +25,22 @@ function App() {
   const [textureUrl, setTextureUrl] = useState('');
   const [currentElements, setCurrentElements] = useState<FundusElement[]>([]);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [showFeedbackPrompt, setShowFeedbackPrompt] = useState(false);
 
   const canvasRef = useRef<FundusCanvasRef>(null);
 
   const handleDownload = () => {
     if (canvasRef.current) {
       canvasRef.current.exportImage();
+
+      // Check if user has opted out of feedback
+      const hasOptedOut = localStorage.getItem('feedback_opt_out');
+      if (!hasOptedOut) {
+        // Show feedback prompt after a short delay to allow download to start
+        setTimeout(() => {
+          setShowFeedbackPrompt(true);
+        }, 1500);
+      }
     }
   };
 
@@ -247,6 +258,18 @@ function App() {
       {show3D && <ThreeDView textureUrl={textureUrl} elements={currentElements} detachmentHeight={detachmentHeight} onClose={() => setShow3D(false)} eyeSide={eyeSide} onAddElement={handleAddElement} />}
       {showAI && <AIAnalysisModal imageData={textureUrl} onClose={() => setShowAI(false)} />}
       <ColorLegendModal isOpen={showLegend} onClose={() => setShowLegend(false)} />
+      <FeedbackPrompt
+        isOpen={showFeedbackPrompt}
+        onClose={() => setShowFeedbackPrompt(false)}
+        onFeedback={() => {
+          window.open('https://docs.google.com/forms/d/e/1FAIpQLSfcqdmvqVsFLrVreXe2fJcR24GcSj954BA8edlgqzUXyFiT1g/viewform?usp=dialog', '_blank');
+          setShowFeedbackPrompt(false);
+        }}
+        onDontShowAgain={() => {
+          localStorage.setItem('feedback_opt_out', 'true');
+          setShowFeedbackPrompt(false);
+        }}
+      />
     </div>
   );
 }

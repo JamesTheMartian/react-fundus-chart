@@ -245,6 +245,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <button onClick={onDownload} className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 transition-all mt-2">
                 <Download size={16} /> Download Image
             </button>
+            <button
+                onClick={() => window.open('https://docs.google.com/forms/d/e/1FAIpQLSfcqdmvqVsFLrVreXe2fJcR24GcSj954BA8edlgqzUXyFiT1g/viewform?usp=dialog', '_blank')}
+                className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-transparent text-blue-600 text-sm font-medium hover:bg-blue-50 transition-all"
+            >
+                <HelpCircle size={16} /> Give Feedback
+            </button>
         </>
     );
 
@@ -394,6 +400,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
                             <button onClick={onDownload} className="w-full p-3 border border-gray-200 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
                                 <Download size={16} /> Download Image
+                            </button>
+                            <button
+                                onClick={() => window.open('https://docs.google.com/forms/d/e/1FAIpQLSfcqdmvqVsFLrVreXe2fJcR24GcSj954BA8edlgqzUXyFiT1g/viewform?usp=dialog', '_blank')}
+                                className="w-full p-3 text-blue-600 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
+                            >
+                                <HelpCircle size={16} /> Give Feedback
                             </button>
                         </div>
                     </div>
