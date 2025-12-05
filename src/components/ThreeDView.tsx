@@ -317,7 +317,7 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
             const maxR = 0.5;
             const r = Math.min(dist, maxR); // Clamp to circle
 
-            const theta = (r / maxR) * (Math.PI / 2); // 0 at pole, 90 at rim
+            const theta = (r / 0.5) * (Math.PI * (7 / 8)); // 0 at pole, extended to 7/8 sphere
             const phi = Math.atan2(dy, dx); // Angle around pole
 
             const R = 2; // Sphere radius
@@ -384,7 +384,7 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
         const dist = Math.sqrt(dx * dx + dy * dy);
         const maxR = 0.5;
         const r = Math.min(dist, maxR);
-        const theta = (r / maxR) * (Math.PI / 2);
+        const theta = (r / maxR) * (Math.PI * (7 / 8));
         const phi = Math.atan2(dy, dx);
         const R = 2;
 
@@ -465,19 +465,19 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
             {vitreousElements}
 
             {/* Outline / Rim */}
-            <mesh rotation={[0, 0, 0]}>
-                <torusGeometry args={[2, 0.05, 16, 100]} />
+            <mesh rotation={[0, 0, 0]} position={[0, 0, -2 * Math.cos(Math.PI * (7 / 8))]}>
+                <torusGeometry args={[2 * Math.sin(Math.PI * (7 / 8)), 0.05, 16, 100]} />
                 <meshBasicMaterial color="#333" />
             </mesh>
 
             {/* Outer Shell (for depth/shadows from outside) */}
             <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                <sphereGeometry args={[2.02, 64, 64, 0, Math.PI * 2, 0, Math.PI / 2]} />
+                <sphereGeometry args={[2.02, 64, 64, 0, Math.PI * 2, 0, Math.PI * (7 / 8)]} />
                 <meshStandardMaterial
-                    color="#000"
+                    color="#fee"
                     side={THREE.FrontSide}
                     transparent={true}
-                    opacity={0.7}
+                    opacity={0.5}
                 />
             </mesh>
         </group>
