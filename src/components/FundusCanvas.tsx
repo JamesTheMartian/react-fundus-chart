@@ -149,7 +149,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
 
         ctx.beginPath();
         ctx.ellipse(discX, discY, 20, 25, 0, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffd9b3'; // Light yellow
+        ctx.fillStyle = '#dd708aff'; // Light yellow
         ctx.fill();
         ctx.stroke();
 
