@@ -228,13 +228,39 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             }
 
             if (element.points) {
-                ctx.beginPath();
-                ctx.moveTo(element.points[0].x, element.points[0].y);
-                for (let i = 1; i < element.points.length; i++) {
-                    ctx.lineTo(element.points[i].x, element.points[i].y);
+                if (element.toolType === 'pattern') {
+                    ctx.beginPath();
+                    // Simple pattern: Dotted line for now
+                    ctx.setLineDash([5, 10]);
+                    ctx.moveTo(element.points[0].x, element.points[0].y);
+                    for (let i = 1; i < element.points.length; i++) {
+                        ctx.lineTo(element.points[i].x, element.points[i].y);
+                    }
+                    ctx.stroke();
                 }
-                ctx.stroke();
+                if (element.toolType === 'fill') {
+                    ctx.globalAlpha = 0.5;
+                    ctx.fillStyle = MEDICAL_COLORS[element.color];
+                    ctx.beginPath();
+                    ctx.moveTo(element.points[0].x, element.points[0].y);
+                    for (let i = 1; i < element.points.length; i++) {
+                        ctx.lineTo(element.points[i].x, element.points[i].y);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke(); // Optional: Draw border as well
+                    ctx.globalAlpha = 1.0;
+                }
+                else {
+                    ctx.beginPath();
+                    ctx.moveTo(element.points[0].x, element.points[0].y);
+                    for (let i = 1; i < element.points.length; i++) {
+                        ctx.lineTo(element.points[i].x, element.points[i].y);
+                    }
+                    ctx.stroke();
+                }
             }
+
         } else if (element.type === 'hemorrhage' || element.type === 'spot') {
             if (element.position) {
                 ctx.beginPath();
