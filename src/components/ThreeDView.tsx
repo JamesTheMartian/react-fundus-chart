@@ -174,7 +174,7 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
     ]);
 
     React.useEffect(() => {
-        if (eyeSide === 'OD') {
+        if (eyeSide === 'OS') {
             roughnessMap.wrapS = THREE.RepeatWrapping;
             roughnessMap.repeat.x = -1;
             roughnessMap.offset.x = 1;
@@ -457,6 +457,7 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
                     roughness={1.0}
                     metalness={0}
                     onBeforeCompile={onBeforeCompile}
+                    color="#fff"
                 />
             </mesh>
 
