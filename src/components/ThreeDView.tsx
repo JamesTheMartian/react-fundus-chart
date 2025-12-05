@@ -457,7 +457,7 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
                     roughness={1.0}
                     metalness={0}
                     onBeforeCompile={onBeforeCompile}
-                    color="#fff"
+                    color="#f88"
                 />
             </mesh>
 
