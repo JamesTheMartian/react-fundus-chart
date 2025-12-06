@@ -142,7 +142,7 @@ function App() {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-gray-50 flex flex-col lg:flex-row font-sans text-gray-900">
+    <div className="h-screen w-screen overflow-hidden bg-gray-100 flex flex-col lg:flex-row font-sans text-gray-900">
       {/* Header for Mobile / Tablet - Minimal */}
       <header className="lg:hidden h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 shrink-0 z-20">
         <h1 className="text-sm font-semibold text-gray-900">Retinal Fundus Charting</h1>
@@ -152,10 +152,10 @@ function App() {
       </header>
 
       {/* Left Sidebar - Toolbar */}
-      <aside className="hidden lg:flex flex-col w-80 h-full bg-white border-r border-gray-200 z-10 shrink-0 overflow-y-auto">
-        <div className="p-4 border-b border-gray-100">
-          <h1 className="text-base font-bold text-gray-900">Retinal Charting</h1>
-          <p className="text-xs text-gray-500">Pro Studio</p>
+      <aside className="hidden lg:flex flex-col w-80 h-full bg-white border-r border-gray-200 z-10 shrink-0 overflow-y-auto shadow-sm">
+        <div className="p-5 border-b border-gray-100 flex flex-col gap-0.5">
+          <h1 className="text-lg font-bold text-gray-900 tracking-tight">Retinal Charting</h1>
+          <p className="text-xs font-medium text-blue-600 uppercase tracking-widest">Pro Studio</p>
         </div>
         <Toolbar
           activeColor={activeColor}
@@ -183,9 +183,9 @@ function App() {
       </aside>
 
       {/* Center - Canvas Area */}
-      <main className="flex-1 relative bg-gray-100/50 overflow-hidden flex items-center justify-center p-4 lg:p-0">
+      <main className="flex-1 relative bg-gray-100 overflow-hidden flex items-center justify-center p-4 lg:p-8">
         {/* Canvas Container */}
-        <div className="relative shadow-2xl shadow-black/5 rounded-full lg:rounded-none overflow-hidden bg-white">
+        <div className="relative shadow-2xl shadow-black/10 rounded-full lg:rounded-2xl overflow-hidden bg-white ring-1 ring-black/5">
           <FundusCanvas
             ref={canvasRef}
             width={600}
@@ -213,7 +213,7 @@ function App() {
       </main>
 
       {/* Right Sidebar - Layers */}
-      <aside className="hidden lg:flex flex-col w-64 h-full bg-white border-l border-gray-200 z-10 shrink-0">
+      <aside className="hidden lg:flex flex-col w-72 h-full bg-white border-l border-gray-200 z-10 shrink-0 shadow-sm">
         <LayerPanel
           elements={currentElements}
           selectedElementId={selectedElementId}
