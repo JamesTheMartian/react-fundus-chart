@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import type { FundusElement, EyeSide, Point } from '../utils/types';
 // import './ThreeDView.css'; // Removed for Tailwind migration
 
-import { Sun } from 'lucide-react';
+import { Sun, Eye, FileText } from 'lucide-react';
 
 interface LightControlProps {
     rotation: number;
@@ -119,13 +119,131 @@ interface EyeModelProps {
     detachmentHeight: number;
     eyeSide: EyeSide;
     onAddElement?: (point: Point) => void;
+    viewMode: 'chart' | 'retina';
 }
 
-const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHeight, eyeSide, onAddElement }) => {
+const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHeight, eyeSide, onAddElement, viewMode }) => {
     const texture = useLoader(THREE.TextureLoader, textureUrl);
     const materialRef = React.useRef<THREE.MeshStandardMaterial>(null);
 
-    // Generate Displacement Map for Detachments
+    // Generate Retina Map (Red background + Original Colors)
+    const retinaMap = React.useMemo(() => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 1024;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return null;
+
+        // 1. Fill Background with Red (Retina Color)
+        ctx.fillStyle = '#c04040'; // Deep red/orange
+        ctx.fillRect(0, 0, 1024, 1024);
+
+        // 2. Draw Elements
+        // Scale factor from original 600x600 to 1024x1024
+        const scaleX = 1024 / 600;
+        const scaleY = 1024 / 600;
+
+        elements.forEach(element => {
+            if (!element.visible) return;
+
+            // Skip eraser for color map (it just reveals background, which is already red here)
+            // Actually, if we erase on the chart, we see white. Here we see red.
+            // If we have "eraser" strokes, they should probably "erase" to the background color.
+            // Since we started with background color, we can just skip drawing them?
+            // Or if they are erasing *other* strokes, we need to use destination-out?
+            // But canvas doesn't support layers easily.
+            // If we draw in order, eraser should erase previous strokes.
+
+            if (element.toolType === 'eraser') {
+                ctx.globalCompositeOperation = 'destination-out';
+                // But wait, destination-out makes it transparent!
+                // We want it to be the background color (Red).
+                // So we should draw with Red color?
+                // But if we draw with Red, we might cover things we shouldn't?
+                // Actually, standard eraser behavior is "remove ink".
+                // If we use destination-out, we get transparency.
+                // If we put a red layer *behind* this canvas, transparency shows red.
+                // BUT we are making a single texture.
+                // So we should probably use 'source-over' with the background color.
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = '#c04040';
+                ctx.fillStyle = '#c04040';
+            } else {
+                ctx.globalCompositeOperation = 'source-over';
+                // Get color from element
+                // We need to map 'red', 'blue' etc to hex
+                // We can't import MEDICAL_COLORS easily if not exported or we can just redefine/import
+                // It is imported from types.
+                const color = element.color === 'red' ? '#FF0000' :
+                    element.color === 'blue' ? '#0000FF' :
+                        element.color === 'green' ? '#008000' :
+                            element.color === 'brown' ? '#8B4513' :
+                                element.color === 'yellow' ? '#FFFF00' :
+                                    '#000000';
+
+                ctx.strokeStyle = color;
+                ctx.fillStyle = color;
+            }
+
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            const width = (element.width || 2) * scaleX;
+            ctx.lineWidth = width;
+
+            if (element.type === 'stroke' && element.points) {
+                if (element.points.length < 2) return;
+
+                if (element.toolType === 'pattern') {
+                    ctx.beginPath();
+                    ctx.setLineDash([5 * scaleX, 10 * scaleX]);
+                    ctx.moveTo(element.points[0].x * scaleX, element.points[0].y * scaleY);
+                    for (let i = 1; i < element.points.length; i++) {
+                        ctx.lineTo(element.points[i].x * scaleX, element.points[i].y * scaleY);
+                    }
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                } else if (element.toolType === 'fill') {
+                    ctx.globalAlpha = 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(element.points[0].x * scaleX, element.points[0].y * scaleY);
+                    for (let i = 1; i < element.points.length; i++) {
+                        ctx.lineTo(element.points[i].x * scaleX, element.points[i].y * scaleY);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.globalAlpha = 1.0;
+                } else {
+                    // Brush/Pen
+                    if (element.toolType === 'brush') {
+                        ctx.globalAlpha = element.layer === 'vitreous' ? 0.3 : 0.5;
+                    }
+                    ctx.beginPath();
+                    ctx.moveTo(element.points[0].x * scaleX, element.points[0].y * scaleY);
+                    for (let i = 1; i < element.points.length; i++) {
+                        ctx.lineTo(element.points[i].x * scaleX, element.points[i].y * scaleY);
+                    }
+                    ctx.stroke();
+                    ctx.globalAlpha = 1.0;
+                }
+            } else if ((element.type === 'hemorrhage' || element.type === 'spot') && element.position) {
+                ctx.beginPath();
+                ctx.ellipse(
+                    element.position.x * scaleX,
+                    element.position.y * scaleY,
+                    (element.width || 10) * scaleX / 2,
+                    (element.height || 10) * scaleY / 2,
+                    element.rotation || 0,
+                    0, Math.PI * 2
+                );
+                ctx.fill();
+            }
+        });
+
+        return new THREE.CanvasTexture(canvas);
+    }, [elements]);
+
+    // ... (Displacement Map logic remains same)
     const displacementMap = React.useMemo(() => {
         const canvas = document.createElement('canvas');
         canvas.width = 512;
@@ -133,7 +251,6 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
         const ctx = canvas.getContext('2d');
         if (!ctx) return null;
 
-        // Black background (no displacement)
         ctx.fillStyle = '#000000';
         ctx.fillRect(0, 0, 512, 512);
 
@@ -144,11 +261,10 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.strokeStyle = '#FFFFFF';
-        // Blur for smooth transition
         ctx.shadowBlur = 10;
         ctx.shadowColor = '#FFFFFF';
 
-        // Draw Detachment strokes in White, and Eraser strokes in Black (to remove displacement)
+        // Draw Detachment strokes in White, and Eraser strokes in Black
         elements.forEach(stroke => {
             if (!stroke.points || stroke.points.length < 2) return;
 
@@ -164,14 +280,11 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
             }
 
             if (isEraser) {
-                // Erase displacement
                 ctx.globalCompositeOperation = 'destination-out';
-                ctx.lineWidth = (stroke.width || 2) * scaleX * 2; // Double width for eraser to match 2D view
+                ctx.lineWidth = (stroke.width || 2) * scaleX * 2;
                 ctx.stroke();
-                // Reset to source-over for next strokes
                 ctx.globalCompositeOperation = 'source-over';
             } else {
-                // Draw displacement
                 ctx.globalCompositeOperation = 'source-over';
                 ctx.lineWidth = (stroke.width || 2) * scaleX;
                 ctx.stroke();
@@ -182,6 +295,7 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
         return tex;
     }, [elements]);
 
+    // ... (Roughness/Normal map loader remains same)
     const [roughnessMap, normalMap] = useLoader(THREE.TextureLoader, [
         `${import.meta.env.BASE_URL}textures/roughness_map.jpg`,
         `${import.meta.env.BASE_URL}textures/normal_map.jpg`
@@ -192,7 +306,6 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
             roughnessMap.wrapS = THREE.RepeatWrapping;
             roughnessMap.repeat.x = -1;
             roughnessMap.offset.x = 1;
-
             normalMap.wrapS = THREE.RepeatWrapping;
             normalMap.repeat.x = -1;
             normalMap.offset.x = 1;
@@ -206,85 +319,44 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
         normalMap.needsUpdate = true;
     }, [eyeSide, roughnessMap, normalMap]);
 
-    // Custom Shader Logic
+    // ... (Shader logic remains same)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const onBeforeCompile = React.useCallback((shader: any) => {
         shader.uniforms.uTime = { value: 0 };
         shader.uniforms.uDisplacementMap = { value: displacementMap };
         shader.uniforms.uDetachmentHeight = { value: detachmentHeight };
 
-        // Inject uniforms
         shader.vertexShader = `
             uniform float uTime;
             uniform float uDetachmentHeight;
             uniform sampler2D uDisplacementMap;
         ` + shader.vertexShader;
 
-        // Inject vertex displacement and normal recalculation logic
         shader.vertexShader = shader.vertexShader.replace(
             '#include <begin_vertex>',
             `
             #include <begin_vertex>
-            
-            // Read displacement from map
             float disp = texture2D(uDisplacementMap, uv).r;
-
-            // Add wave effect only where there is displacement
             if (disp > 0.1) {
-                // Wave function: sin(x*10 + t*2) * 0.05 + cos(y*10 + t*3) * 0.05
                 float waveX = position.x * 10.0 + uTime * 2.0;
                 float waveY = position.y * 10.0 + uTime * 3.0;
-                
                 float wave = sin(waveX) * 0.05 + cos(waveY) * 0.05;
-                
-                // Derivatives for normal recalculation
-                // d(sin(u))/dx = cos(u) * du/dx
-                float dWaveDx = cos(waveX) * 10.0 * 0.05; // * 0.5
-                float dWaveDy = -sin(waveY) * 10.0 * 0.05; // * -0.5
-                
-                // Use uDetachmentHeight uniform
+                float dWaveDx = cos(waveX) * 10.0 * 0.05; 
+                float dWaveDy = -sin(waveY) * 10.0 * 0.05; 
                 float strength = uDetachmentHeight; 
                 float totalDisp = disp * strength + wave * disp;
-                
                 transformed += normal * totalDisp;
-
-                // Recalculate Normal
-                // We approximate the new normal by subtracting the gradient of the wave
-                // This is a simplification but works well for visual waves
                 vec3 waveGrad = vec3(dWaveDx, dWaveDy, 0.0);
-                
-                // Rotate gradient to match surface normal? 
-                // Since we are on a sphere, this is tricky in object space without tangent basis.
-                // However, simply adding the gradient to the normal often gives "good enough" results for noise.
-                // A better way for displacement along normal N is:
-                // NewNormal = N - Gradient * Scale
-                
-                // Let's try perturbing the objectNormal directly
-                // We need to ensure we modify 'objectNormal' or 'vNormal' correctly.
-                // In this chunk, 'objectNormal' is available (from beginnormal_vertex).
-                // But 'transformed' is position.
-                
-                // We can't easily modify objectNormal here because it might have been used already?
-                // Actually, <begin_vertex> is after <beginnormal_vertex>.
-                // So objectNormal is set.
-                
-                // Let's perturb it.
-                // We assume the wave is primarily in X/Y for the gradient calculation above.
-                // But on a sphere, X/Y are changing.
-                // Let's just use the computed gradient as a perturbation.
-                
                 vec3 perturbedNormal = normalize(objectNormal - waveGrad * disp * 0.5);
                 vNormal = normalize(normalMatrix * perturbedNormal);
             }
             `
         );
 
-        // Save reference to shader to update uniforms
         if (materialRef.current) {
             materialRef.current.userData.shader = shader;
         }
-
-    }, [displacementMap]);
+    }, [displacementMap, detachmentHeight]);
 
     React.useEffect(() => {
         if (materialRef.current && materialRef.current.userData.shader) {
@@ -293,11 +365,9 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
         }
     }, [displacementMap, detachmentHeight]);
 
-    // Animation Loop
     React.useEffect(() => {
         let frameId: number;
         const startTime = Date.now();
-
         const animate = () => {
             const time = (Date.now() - startTime) / 1000;
             if (materialRef.current && materialRef.current.userData.shader) {
@@ -309,7 +379,7 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
         return () => cancelAnimationFrame(frameId);
     }, []);
 
-    // Custom Geometry to map the flat circular image onto a hemisphere
+    // ... (Geometry remains same)
     const geometry = React.useMemo(() => {
         const geo = new THREE.PlaneGeometry(4, 4, 128, 128);
         const pos = geo.attributes.position;
@@ -318,58 +388,21 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
         for (let i = 0; i < pos.count; i++) {
             const u = uvs.getX(i);
             const v = uvs.getY(i);
-
-            // Calculate distance from center (0.5, 0.5)
             const dx = u - 0.5;
             const dy = v - 0.5;
             const dist = Math.sqrt(dx * dx + dy * dy);
-
-            // We only care about the circle within the square (radius 0.5)
-            // Map dist 0..0.5 to theta 0..PI/2
-            // If dist > 0.5, clamp or let it wrap (it will be outside the hemisphere rim)
-
             const maxR = 0.5;
-            const r = Math.min(dist, maxR); // Clamp to circle
-
-            const theta = (r / 0.5) * (Math.PI * (7 / 8)); // 0 at pole, extended to 7/8 sphere
-            const phi = Math.atan2(dy, dx); // Angle around pole
-
-            const R = 2; // Sphere radius
-
-            // Polar coordinates to Cartesian
-            // We want the pole (center of image) to be at Z-deepest point?
-            // User wants "Inside of the sphere".
-            // Let's place the pole at (0,0,-R) and rim at Z=0?
-            // Or Pole at (0,0,R) and look from (0,0,0)?
-
-            // Standard Sphere:
-            // x = R * sin(theta) * cos(phi)
-            // y = R * sin(theta) * sin(phi)
-            // z = R * cos(theta)
-
-            // At theta=0 (center): x=0, y=0, z=R.
-            // At theta=90 (rim): z=0.
-
-            // We want to look at the INSIDE.
-            // So we can keep this shape, and put the camera at (0,0,0) looking at (0,0,R)?
-            // Or put camera at (0,0,0) and geometry at (0,0,-R)?
-
-            // Let's use the standard shape.
-            // x, y are the flat plane coordinates deformed.
-
+            const r = Math.min(dist, maxR);
+            const theta = (r / 0.5) * (Math.PI * (7 / 8));
+            const phi = Math.atan2(dy, dx);
+            const R = 2;
             temp.set(
                 R * Math.sin(theta) * Math.cos(phi),
                 R * Math.sin(theta) * Math.sin(phi),
-                -R * Math.cos(theta) // Negative Z to make it a "bowl" facing +Z?
+                -R * Math.cos(theta)
             );
-
-            // If we want the "bowl" to be open towards the camera (which is at +Z),
-            // The pole should be at -Z.
-            // Rim at Z=0.
-
             pos.setXYZ(i, temp.x, temp.y, temp.z);
         }
-
         geo.computeVertexNormals();
         return geo;
     }, []);
@@ -385,14 +418,10 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
         }
     };
 
-
-
-
-
+    // ... (map2DTo3D and vitreousElements remain same)
     const map2DTo3D = (p: Point, depth: number = 0.5): THREE.Vector3 => {
         const u = p.x / 600;
         const v = 1 - (p.y / 600);
-
         const dx = u - 0.5;
         const dy = v - 0.5;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -401,47 +430,37 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
         const theta = (r / maxR) * (Math.PI * (7 / 8));
         const phi = Math.atan2(dy, dx);
         const R = 2;
-
         const R_vitreous = R - depth;
-
         const x = R_vitreous * Math.sin(theta) * Math.cos(phi);
         const y = R_vitreous * Math.sin(theta) * Math.sin(phi);
         const z = -R_vitreous * Math.cos(theta);
-
         return new THREE.Vector3(x, y, z);
     };
 
-    // Vitreous Elements
     const vitreousElements = React.useMemo(() => {
         return elements.filter(e => e.layer === 'vitreous' && e.visible).map((e) => {
             if (e.type === 'stroke' && e.points && e.points.length > 1) {
-                // Create Tube from points
                 const points3D = e.points.map(p => map2DTo3D(p, e.zDepth || 0.5));
                 const curve = new THREE.CatmullRomCurve3(points3D);
-                // Width scaling: 2D width is pixels. 3D width needs to be small.
-                // 600px -> 4 units (approx). So 1px ~ 0.006 units.
                 const width3D = (e.width || 5) * 0.01;
-
                 return (
                     <mesh key={e.id}>
                         <tubeGeometry args={[curve, 64, width3D, 8, false]} />
                         <meshPhysicalMaterial
-                            color="#880000" // Darker blood red
+                            color="#880000"
                             transparent
                             opacity={0.9}
                             roughness={1}
                             metalness={0}
-                            transmission={0.5} // Glassy/Jelly look
+                            transmission={0.5}
                             thickness={1}
                             clearcoat={1.0}
                         />
                     </mesh>
                 );
             } else {
-                // Fallback for single points or shapes (spheres)
                 const p = e.position || (e.points && e.points[0]) || { x: 0, y: 0 };
                 const pos = map2DTo3D(p, e.zDepth || 0.5);
-
                 return (
                     <mesh key={e.id} position={pos}>
                         <sphereGeometry args={[0.15, 16, 16]} />
@@ -460,31 +479,24 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
 
     return (
         <group>
-            {/* The Fundus Map */}
             <mesh geometry={geometry} onClick={handleClick}>
                 <meshStandardMaterial
                     ref={materialRef}
-                    map={texture}
+                    map={viewMode === 'chart' ? texture : retinaMap}
                     roughnessMap={roughnessMap}
                     normalMap={normalMap}
                     side={THREE.FrontSide}
                     roughness={1.0}
                     metalness={0}
                     onBeforeCompile={onBeforeCompile}
-                    color="#f88"
+                    color="#ffffff" // Always white, let the texture define the color
                 />
             </mesh>
-
-            {/* Vitreous Objects */}
             {vitreousElements}
-
-            {/* Outline / Rim */}
             <mesh rotation={[0, 0, 0]} position={[0, 0, -2 * Math.cos(Math.PI * (7 / 8))]}>
                 <torusGeometry args={[2 * Math.sin(Math.PI * (7 / 8)), 0.05, 16, 100]} />
                 <meshBasicMaterial color="#333" />
             </mesh>
-
-            {/* Outer Shell (for depth/shadows from outside) */}
             <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                 <sphereGeometry args={[2.02, 64, 64, 0, Math.PI * 2, 0, Math.PI * (7 / 8)]} />
                 <meshStandardMaterial
@@ -496,11 +508,9 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
             </mesh>
         </group>
     );
-
 };
 
-// import './ThreeDView.css'; // Removed for Tailwind migration
-
+// ... (ThreeDViewProps remains same)
 interface ThreeDViewProps {
     textureUrl: string;
     elements: FundusElement[];
@@ -512,8 +522,8 @@ interface ThreeDViewProps {
 
 export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, elements, detachmentHeight, onClose, eyeSide, onAddElement }) => {
     const [lightRotation, setLightRotation] = React.useState(45);
+    const [viewMode, setViewMode] = React.useState<'chart' | 'retina'>('chart');
 
-    // Calculate light position based on rotation
     const lightX = 7 * Math.cos((lightRotation * Math.PI) / 180);
     const lightY = 7 * Math.sin((lightRotation * Math.PI) / 180);
 
@@ -523,6 +533,24 @@ export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, elements, de
                 <div className="p-4 bg-gray-950 flex justify-between items-center border-b border-gray-800">
                     <h2 className="text-lg font-semibold text-white">3D Fundus Visualization</h2>
                     <div className="flex items-center gap-4">
+                        {/* View Mode Toggle */}
+                        <div className="flex items-center gap-1 bg-gray-900 p-1 rounded-xl border border-gray-800">
+                            <button
+                                onClick={() => setViewMode('chart')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2 transition-colors ${viewMode === 'chart' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                            >
+                                <FileText size={14} />
+                                Chart
+                            </button>
+                            <button
+                                onClick={() => setViewMode('retina')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2 transition-colors ${viewMode === 'retina' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                            >
+                                <Eye size={14} />
+                                Retina
+                            </button>
+                        </div>
+
                         <div className="flex items-center gap-3 bg-gray-900 px-4 py-2 rounded-xl border border-gray-800">
                             <div className="flex flex-col gap-1">
                                 <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Light Direction</span>
@@ -539,7 +567,6 @@ export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, elements, de
                     </div>
                 </div>
                 <div className="flex-1 w-full h-full bg-black relative">
-                    {/* Position camera to look into the hemisphere */}
                     <Canvas camera={{ position: [0, 0, 5], fov: 50 }} shadows>
                         <color attach="background" args={['#050511']} />
                         <ambientLight intensity={0.4} />
@@ -555,14 +582,13 @@ export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, elements, de
                         <pointLight position={[0, 0, 2]} intensity={0.5} color="#ffffff" />
 
                         <Suspense fallback={<Html center><div className="text-white">Loading 3D Model...</div></Html>}>
-                            <EyeModel key={textureUrl} textureUrl={textureUrl} elements={elements} detachmentHeight={detachmentHeight} eyeSide={eyeSide} onAddElement={onAddElement} />
+                            <EyeModel key={textureUrl} textureUrl={textureUrl} elements={elements} detachmentHeight={detachmentHeight} eyeSide={eyeSide} onAddElement={onAddElement} viewMode={viewMode} />
                         </Suspense>
 
                         <OrbitControls
                             enablePan={false}
                             minDistance={1}
                             maxDistance={8}
-                            // Limit rotation so user doesn't get lost behind the eye
                             minPolarAngle={Math.PI / 3}
                             maxPolarAngle={Math.PI / 1.5}
                         />
