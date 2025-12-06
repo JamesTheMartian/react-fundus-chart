@@ -273,65 +273,88 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     );
 
     // Mobile Bottom Bar (Tools + Menu Trigger)
-    const MobileBottomBar = () => (
-        <div className="flex items-center gap-2 w-full h-full overflow-x-auto px-2 no-scrollbar">
-            {/* Tools Section */}
-            <div className="flex gap-2 shrink-0">
-                {[
-                    { id: 'select', icon: MousePointer },
-                    { id: 'pen', icon: Pen },
-                    { id: 'brush', icon: Brush },
-                    { id: 'eraser', icon: Eraser }
-                ].map((tool) => (
+    const MobileBottomBar = () => {
+        const showBrushSlider = ['pen', 'brush', 'eraser'].includes(activeTool);
+
+        return (
+            <div className="flex flex-col items-center gap-3 w-full pointer-events-auto">
+
+                {/* Brush Size Slider (Conditional) */}
+                {showBrushSlider && (
+                    <div className="bg-white/90 backdrop-blur-md border border-gray-200 shadow-lg rounded-2xl p-2 px-4 flex items-center gap-3 w-[80%] max-w-[280px] animate-in slide-in-from-bottom-2 fade-in duration-300">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider shrink-0">Size</span>
+                        <input
+                            type="range"
+                            min="1"
+                            max="50"
+                            value={brushSize}
+                            onChange={(e) => setBrushSize(Number(e.target.value))}
+                            className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                        />
+                        <span className="text-xs font-bold text-gray-600 w-6 text-center">{brushSize}</span>
+                    </div>
+                )}
+
+                {/* Main Toolbar Pill */}
+                <div className="flex items-center gap-1.5 bg-white/90 backdrop-blur-xl border border-gray-200/50 shadow-xl shadow-gray-200/40 rounded-full p-2 pl-3 pr-2 w-full max-w-sm justify-between">
+                    {/* Tools Section */}
+                    <div className="flex gap-1 shrink-0">
+                        {[
+                            { id: 'select', icon: MousePointer },
+                            { id: 'pen', icon: Pen },
+                            { id: 'brush', icon: Brush },
+                            { id: 'eraser', icon: Eraser }
+                        ].map((tool) => (
+                            <button
+                                key={tool.id}
+                                onClick={() => setActiveTool(tool.id as ToolType)}
+                                className={`p-2.5 rounded-full flex items-center justify-center transition-all active:scale-90 ${activeTool === tool.id
+                                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30 ring-2 ring-blue-100'
+                                    : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
+                                    }`}
+                            >
+                                <tool.icon size={20} className={activeTool === tool.id ? 'stroke-[2.5px]' : ''} />
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="w-px h-6 bg-gray-200 shrink-0 mx-1"></div>
+
+                    {/* Active Color (Compact) */}
                     <button
-                        key={tool.id}
-                        onClick={() => setActiveTool(tool.id as ToolType)}
-                        className={`p-2.5 rounded-xl flex items-center justify-center transition-all active:scale-95 ${activeTool === tool.id
-                            ? 'bg-blue-50 text-blue-600 shadow-inner ring-1 ring-blue-100'
-                            : 'bg-gray-50 text-gray-600'
-                            }`}
+                        onClick={() => setShowMobileMenu(true)}
+                        className="w-9 h-9 rounded-full border border-gray-100 shadow-inner shrink-0 relative hover:scale-105 transition-transform"
+                        style={{ backgroundColor: MEDICAL_COLORS[activeColor] }}
                     >
-                        <tool.icon size={20} />
+                        {/* Color Indicator Ring if white/bright */}
+                        <div className="absolute inset-0 rounded-full ring-1 ring-inset ring-black/5"></div>
                     </button>
-                ))}
-            </div>
 
-            <div className="w-px h-8 bg-gray-200 shrink-0 mx-1"></div>
+                    <div className="w-px h-6 bg-gray-200 shrink-0 mx-1"></div>
 
-            {/* Active Color (Compact) */}
-            <button
-                onClick={() => setShowMobileMenu(true)}
-                className="w-10 h-10 rounded-full border-2 border-white shadow-sm shrink-0 relative"
-                style={{ backgroundColor: MEDICAL_COLORS[activeColor] }}
-            >
-                <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm border border-gray-100">
-                    <div className="w-2 h-2 rounded-full bg-gray-900"></div>
+                    {/* Undo/Redo (Compact) */}
+                    <div className="flex gap-0.5 shrink-0">
+                        <button onClick={onUndo} className="p-2 rounded-full hover:bg-gray-100 text-gray-500 active:scale-90 transition-transform">
+                            <Undo size={18} />
+                        </button>
+                        <button onClick={onRedo} className="p-2 rounded-full hover:bg-gray-100 text-gray-500 active:scale-90 transition-transform">
+                            <Redo size={18} />
+                        </button>
+                    </div>
+
+                    <div className="w-px h-6 bg-gray-200 shrink-0 mx-1"></div>
+
+                    {/* Menu Trigger */}
+                    <button
+                        onClick={() => setShowMobileMenu(!showMobileMenu)}
+                        className={`p-2 rounded-full flex items-center justify-center transition-all shrink-0 ${showMobileMenu ? 'bg-gray-900 text-white shadow-lg' : 'hover:bg-gray-100 text-gray-700'}`}
+                    >
+                        <Box size={20} />
+                    </button>
                 </div>
-            </button>
-
-            <div className="w-px h-8 bg-gray-200 shrink-0 mx-1"></div>
-
-            {/* Undo/Redo (Compact) */}
-            <div className="flex gap-1 shrink-0">
-                <button onClick={onUndo} className="p-2.5 rounded-xl bg-gray-50 text-gray-600 active:bg-gray-200">
-                    <Undo size={18} />
-                </button>
-                <button onClick={onRedo} className="p-2.5 rounded-xl bg-gray-50 text-gray-600 active:bg-gray-200">
-                    <Redo size={18} />
-                </button>
             </div>
-
-            <div className="flex-1"></div>
-
-            {/* Menu Trigger */}
-            <button
-                onClick={() => setShowMobileMenu(!showMobileMenu)}
-                className={`p-2.5 rounded-xl flex items-center justify-center transition-all shrink-0 ${showMobileMenu ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700'}`}
-            >
-                <Box size={20} />
-            </button>
-        </div>
-    );
+        );
+    };
 
     return (
         <>
@@ -347,7 +370,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
             {/* Mobile Menu Overlay */}
             {showMobileMenu && (
-                <div className="lg:hidden fixed inset-0 z-50 bg-black/20 backdrop-blur-sm" onClick={() => setShowMobileMenu(false)}>
+                <div className="lg:hidden fixed inset-0 z-50 bg-black/20 backdrop-blur-sm pointer-events-auto" onClick={() => setShowMobileMenu(false)}>
                     <div
                         className="absolute bottom-16 left-2 right-2 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 max-h-[70vh] overflow-y-auto flex flex-col gap-4 animate-in slide-in-from-bottom-10 fade-in duration-200"
                         onClick={e => e.stopPropagation()}
