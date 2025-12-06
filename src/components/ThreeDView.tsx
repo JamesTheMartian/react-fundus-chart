@@ -1,6 +1,5 @@
 import React, { Suspense } from 'react';
 import { Canvas, useLoader } from '@react-three/fiber';
-import type { ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import type { FundusElement, EyeSide, Point } from '../utils/types';
@@ -118,11 +117,10 @@ interface EyeModelProps {
     elements: FundusElement[];
     detachmentHeight: number;
     eyeSide: EyeSide;
-    onAddElement?: (point: Point) => void;
     viewMode: 'chart' | 'retina';
 }
 
-const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHeight, eyeSide, onAddElement, viewMode }) => {
+const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHeight, eyeSide, viewMode }) => {
     const texture = useLoader(THREE.TextureLoader, textureUrl);
     const materialRef = React.useRef<THREE.MeshStandardMaterial>(null);
 
@@ -282,12 +280,27 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
             if (isEraser) {
                 ctx.globalCompositeOperation = 'destination-out';
                 ctx.lineWidth = (stroke.width || 2) * scaleX * 2;
-                ctx.stroke();
+
+                if (stroke.toolType === 'fill') {
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                } else {
+                    ctx.stroke();
+                }
                 ctx.globalCompositeOperation = 'source-over';
             } else {
                 ctx.globalCompositeOperation = 'source-over';
                 ctx.lineWidth = (stroke.width || 2) * scaleX;
-                ctx.stroke();
+
+                if (stroke.toolType === 'fill') {
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                } else {
+                    ctx.stroke();
+                }
             }
         });
 
@@ -407,16 +420,7 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
         return geo;
     }, []);
 
-    const handleClick = (e: ThreeEvent<MouseEvent>) => {
-        if (!onAddElement) return;
-        if (e.uv) {
-            const point: Point = {
-                x: e.uv.x * 600,
-                y: (1 - e.uv.y) * 600
-            };
-            onAddElement(point);
-        }
-    };
+
 
     // ... (map2DTo3D and vitreousElements remain same)
     const map2DTo3D = (p: Point, depth: number = 0.5): THREE.Vector3 => {
@@ -479,7 +483,7 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
 
     return (
         <group>
-            <mesh geometry={geometry} onClick={handleClick}>
+            <mesh geometry={geometry}>
                 <meshStandardMaterial
                     ref={materialRef}
                     map={viewMode === 'chart' ? texture : retinaMap}
@@ -517,10 +521,9 @@ interface ThreeDViewProps {
     detachmentHeight: number;
     onClose: () => void;
     eyeSide: EyeSide;
-    onAddElement?: (point: Point) => void;
 }
 
-export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, elements, detachmentHeight, onClose, eyeSide, onAddElement }) => {
+export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, elements, detachmentHeight, onClose, eyeSide }) => {
     const [lightRotation, setLightRotation] = React.useState(45);
     const [viewMode, setViewMode] = React.useState<'chart' | 'retina'>('chart');
 
@@ -582,7 +585,7 @@ export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, elements, de
                         <pointLight position={[0, 0, 2]} intensity={0.5} color="#ffffff" />
 
                         <Suspense fallback={<Html center><div className="text-white">Loading 3D Model...</div></Html>}>
-                            <EyeModel key={textureUrl} textureUrl={textureUrl} elements={elements} detachmentHeight={detachmentHeight} eyeSide={eyeSide} onAddElement={onAddElement} viewMode={viewMode} />
+                            <EyeModel key={textureUrl} textureUrl={textureUrl} elements={elements} detachmentHeight={detachmentHeight} eyeSide={eyeSide} viewMode={viewMode} />
                         </Suspense>
 
                         <OrbitControls

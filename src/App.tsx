@@ -7,7 +7,7 @@ import { AIAnalysisModal } from './components/AIAnalysisModal';
 import { ColorLegendModal } from './components/ColorLegendModal';
 import { LayerPanel } from './components/LayerPanel';
 import { FeedbackPrompt } from './components/FeedbackPrompt';
-import type { ColorCode, ToolType, EyeSide, PathologyType, FundusElement, Point } from './utils/types';
+import type { ColorCode, ToolType, EyeSide, PathologyType, FundusElement } from './utils/types';
 import { PATHOLOGY_PRESETS } from './utils/types';
 // import './App.css'; // Removed for Tailwind migration
 
@@ -95,39 +95,12 @@ function App() {
     }
   };
 
-  const handleAddElement = (point: Point) => {
-    if (canvasRef.current) {
-      const newElement: FundusElement = {
-        id: Date.now().toString(),
-        type: activePathology === 'hemorrhage' || activePathology === 'vitreous_hemorrhage' ? 'hemorrhage' : 'stroke',
-        position: point, // For shapes
-        points: [point], // For strokes (start point)
-        color: activeColor,
-        width: brushSize * 5, // Make 3D added elements visible
-        height: brushSize * 5,
-        toolType: activeTool,
-        pathology: activePathology,
-        timestamp: Date.now(),
-        visible: true,
-        layer: activePathology === 'vitreous_hemorrhage' ? 'vitreous' : 'retina',
-        zDepth: activePathology === 'vitreous_hemorrhage' ? 0.5 : 0
-      };
+  // For "Retina" elements (hemorrhage), they should be on the texture.
+  // We can trigger a texture update by re-calling getDataURL, but that's expensive.
+  // For now, let's assume 3D view handles "Vitreous" as separate meshes.
+  // Retinal elements might need a texture refresh or be rendered as decals (future work).
+  // Let's just update the elements list for now.
 
-      canvasRef.current.addElement(newElement);
-      // Update local state to reflect in 3D view immediately
-      setCurrentElements(prev => [...prev, newElement]);
-
-      // Also update texture if needed? 
-      // The 3D view uses the texture for the surface. 
-      // If we add an element, we might want to regenerate the texture.
-      // But for "Vitreous" elements, they are separate meshes, so no texture update needed.
-      // For "Retina" elements (hemorrhage), they should be on the texture.
-      // We can trigger a texture update by re-calling getDataURL, but that's expensive.
-      // For now, let's assume 3D view handles "Vitreous" as separate meshes.
-      // Retinal elements might need a texture refresh or be rendered as decals (future work).
-      // Let's just update the elements list for now.
-    }
-  };
 
   const handleElementUpdate = (id: string, updates: Partial<FundusElement>) => {
     if (canvasRef.current) {
@@ -201,6 +174,7 @@ function App() {
             onElementsChange={setCurrentElements}
             onSelectionChange={setSelectedElementId}
             selectedElementId={selectedElementId}
+            disabled={show3D}
           />
         </div>
 
@@ -255,7 +229,7 @@ function App() {
         />
       </div>
 
-      {show3D && <ThreeDView textureUrl={textureUrl} elements={currentElements} detachmentHeight={detachmentHeight} onClose={() => setShow3D(false)} eyeSide={eyeSide} onAddElement={handleAddElement} />}
+      {show3D && <ThreeDView textureUrl={textureUrl} elements={currentElements} detachmentHeight={detachmentHeight} onClose={() => setShow3D(false)} eyeSide={eyeSide} />}
       {showAI && <AIAnalysisModal imageData={textureUrl} onClose={() => setShowAI(false)} />}
       <ColorLegendModal isOpen={showLegend} onClose={() => setShowLegend(false)} />
       <FeedbackPrompt

@@ -29,6 +29,7 @@ interface FundusCanvasProps {
     onElementsChange?: (elements: FundusElement[]) => void;
     onSelectionChange?: (id: string | null) => void;
     selectedElementId?: string | null;
+    disabled?: boolean;
 }
 
 const CIRCLES = {
@@ -49,6 +50,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
     onElementsChange,
     onSelectionChange,
     selectedElementId: propSelectedElementId,
+    disabled = false,
 }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [elements, setElements] = useState<FundusElement[]>([]);
@@ -502,6 +504,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
     };
 
     const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
+        if (disabled) return;
         e.preventDefault();
         const point = getCanvasPoint(e);
 
@@ -535,6 +538,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
     };
 
     const handleMove = (e: React.MouseEvent | React.TouchEvent) => {
+        if (disabled) return;
         e.preventDefault();
         const point = getCanvasPoint(e);
 
@@ -553,6 +557,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
     };
 
     const handleEnd = () => {
+        if (disabled) return;
         if (currentElement) {
             setElements(prev => [...prev, currentElement]);
             setCurrentElement(null);
@@ -564,7 +569,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             ref={canvasRef}
             width={width}
             height={height}
-            className="border border-gray-200 rounded-2xl bg-white cursor-crosshair touch-none shadow-sm max-w-full h-auto"
+            className={`border border-gray-200 rounded-2xl bg-white touch-none shadow-sm max-w-full h-auto ${disabled ? 'cursor-default' : 'cursor-crosshair'}`}
             onMouseDown={handleStart}
             onMouseMove={handleMove}
             onMouseUp={handleEnd}
