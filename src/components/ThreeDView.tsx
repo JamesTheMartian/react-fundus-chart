@@ -351,16 +351,43 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
             #include <begin_vertex>
             float disp = texture2D(uDisplacementMap, uv).r;
             if (disp > 0.1) {
-                float waveX = position.x * 10.0 + uTime * 2.0;
-                float waveY = position.y * 10.0 + uTime * 3.0;
-                float wave = sin(waveX) * 0.05 + cos(waveY) * 0.05;
-                float dWaveDx = cos(waveX) * 10.0 * 0.05; 
-                float dWaveDy = -sin(waveY) * 10.0 * 0.05; 
+                // Wave 1: Large, slow, organic (The "Flobby" base)
+                float w1_x = position.x * 3.0 + uTime * 1.5;
+                float w1_y = position.y * 2.5 + uTime * 1.2;
+                float wave1 = sin(w1_x) + cos(w1_y);
+                
+                // Wave 2: Medium, counter-movement (Adds complexity)
+                float w2_x = position.x * 5.0 - uTime * 3.0;
+                float w2_y = position.y * 4.0 + uTime * 4.0;
+                float wave2 = sin(w2_y) + cos(w2_x);
+
+                // Wave 3: Small, fast, irregular (Simulates randomness/jitter)
+                float w3_x = (position.x + position.y) * 8.0 + uTime * 2.2;
+                float wave3 = sin(w3_x);
+
+                // Combine waves with weights
+                float combinedWave = (wave1 * 0.5 + wave2 * 0.3 + wave3 * 0.1) * 0.1;
+
+                // Calculate Derivatives for Normal Perturbation (Chain Rule)
+                float dw1_dx = 3.0 * cos(w1_x);
+                float dw1_dy = -2.5 * sin(w1_y);
+                
+                float dw2_dx = -5.0 * sin(w2_x);
+                float dw2_dy = 4.0 * cos(w2_y);
+
+                float dw3_dx = 8.0 * cos(w3_x);
+                float dw3_dy = 8.0 * cos(w3_x);
+
+                float dWaveDx = (dw1_dx * 0.5 + dw2_dx * 0.3 + dw3_dx * 0.1) * 0.1;
+                float dWaveDy = (dw1_dy * 0.5 + dw2_dy * 0.3 + dw3_dy * 0.1) * 0.1;
+
                 float strength = uDetachmentHeight; 
-                float totalDisp = disp * strength + wave * disp;
+                float totalDisp = disp * strength + combinedWave * disp;
+                
                 transformed += normal * totalDisp;
+                
                 vec3 waveGrad = vec3(dWaveDx, dWaveDy, 0.0);
-                vec3 perturbedNormal = normalize(objectNormal - waveGrad * disp * 0.5);
+                vec3 perturbedNormal = normalize(objectNormal - waveGrad * disp * 0.8);
                 vNormal = normalize(normalMatrix * perturbedNormal);
             }
             `
@@ -483,6 +510,14 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
 
     return (
         <group>
+            {/* RPE Layer (Behind Retina) */}
+            <mesh geometry={geometry} scale={[1.01, 1.01, 1.01]}>
+                <meshStandardMaterial
+                    color="#5c2a2a"
+                    roughness={0.8}
+                    side={THREE.FrontSide}
+                />
+            </mesh>
             <mesh geometry={geometry}>
                 <meshStandardMaterial
                     ref={materialRef}
