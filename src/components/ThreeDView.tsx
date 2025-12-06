@@ -5,7 +5,8 @@ import * as THREE from 'three';
 import type { FundusElement, EyeSide, Point } from '../utils/types';
 // import './ThreeDView.css'; // Removed for Tailwind migration
 
-import { Sun, Eye, FileText } from 'lucide-react';
+import { Sun, Eye, FileText, Flashlight, Cloud, ScanLine, X } from 'lucide-react';
+import { useFrame } from '@react-three/fiber';
 
 interface LightControlProps {
     rotation: number;
@@ -112,17 +113,79 @@ const LightControl: React.FC<LightControlProps> = ({ rotation, onChange }) => {
     );
 };
 
+interface VitreousHazeProps {
+    clippingPlanes: THREE.Plane[];
+}
+
+const VitreousHaze: React.FC<VitreousHazeProps> = ({ clippingPlanes }) => {
+    const count = 500;
+    const mesh = React.useRef<THREE.Points>(null);
+
+    const particles = React.useMemo(() => {
+        const temp = new Float32Array(count * 3);
+        for (let i = 0; i < count; i++) {
+            const r = Math.random() * 1.8; // Radius < 2
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+
+            // Keep within hemisphere roughly
+            const x = r * Math.sin(phi) * Math.cos(theta);
+            const y = r * Math.sin(phi) * Math.sin(theta);
+            const z = r * Math.cos(phi);
+
+            // Shift to center roughly
+            temp[i * 3] = x;
+            temp[i * 3 + 1] = y;
+            temp[i * 3 + 2] = z - 1;
+        }
+        return temp;
+    }, []);
+
+    useFrame((state) => {
+        if (mesh.current) {
+            mesh.current.rotation.y = state.clock.getElapsedTime() * 0.05;
+            mesh.current.rotation.x = Math.sin(state.clock.getElapsedTime() * 0.03) * 0.1;
+        }
+    });
+
+    return (
+        <points ref={mesh}>
+            <bufferGeometry>
+                <bufferAttribute
+                    attach="attributes-position"
+                    count={particles.length / 3}
+                    array={particles}
+                    itemSize={3}
+                    args={[particles, 3]}
+                />
+            </bufferGeometry>
+            <pointsMaterial
+                size={0.03}
+                color="#aaaaaa"
+                transparent
+                opacity={0.4}
+                sizeAttenuation
+                blending={THREE.AdditiveBlending}
+                depthWrite={false}
+                clippingPlanes={clippingPlanes}
+            />
+        </points>
+    );
+};
+
 interface EyeModelProps {
     textureUrl: string;
     elements: FundusElement[];
     detachmentHeight: number;
     eyeSide: EyeSide;
     viewMode: 'chart' | 'retina';
+    clippingPlanes: THREE.Plane[];
 }
 
-const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHeight, eyeSide, viewMode }) => {
+const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHeight, eyeSide, viewMode, clippingPlanes }) => {
     const texture = useLoader(THREE.TextureLoader, textureUrl);
     const materialRef = React.useRef<THREE.MeshStandardMaterial>(null);
+    const depthMaterialRef = React.useRef<THREE.MeshDepthMaterial>(null);
 
     // Generate Retina Map (Red background + Original Colors)
     const retinaMap = React.useMemo(() => {
@@ -153,16 +216,6 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
             // If we draw in order, eraser should erase previous strokes.
 
             if (element.toolType === 'eraser') {
-                ctx.globalCompositeOperation = 'destination-out';
-                // But wait, destination-out makes it transparent!
-                // We want it to be the background color (Red).
-                // So we should draw with Red color?
-                // But if we draw with Red, we might cover things we shouldn't?
-                // Actually, standard eraser behavior is "remove ink".
-                // If we use destination-out, we get transparency.
-                // If we put a red layer *behind* this canvas, transparency shows red.
-                // BUT we are making a single texture.
-                // So we should probably use 'source-over' with the background color.
                 ctx.globalCompositeOperation = 'source-over';
                 ctx.strokeStyle = '#c04040';
                 ctx.fillStyle = '#c04040';
@@ -284,7 +337,6 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
                 if (stroke.toolType === 'fill') {
                     ctx.closePath();
                     ctx.fill();
-                    ctx.stroke();
                 } else {
                     ctx.stroke();
                 }
@@ -297,7 +349,6 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
                     ctx.fillStyle = '#FFFFFF';
                     ctx.closePath();
                     ctx.fill();
-                    ctx.stroke();
                 } else {
                     ctx.stroke();
                 }
@@ -306,6 +357,77 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
 
         const tex = new THREE.CanvasTexture(canvas);
         return tex;
+    }, [elements]);
+
+    // Generate Shadow Mask (For Vessel Shadows)
+    const shadowMask = React.useMemo(() => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 1024;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return null;
+
+        // Transparent background
+        ctx.clearRect(0, 0, 1024, 1024);
+
+        const scaleX = 1024 / 600;
+        const scaleY = 1024 / 600;
+
+        elements.forEach(element => {
+            if (!element.visible) return;
+            // Skip eraser
+            if (element.toolType === 'eraser') return;
+
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.fillStyle = '#FFFFFF';
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            const width = (element.width || 2) * scaleX;
+            ctx.lineWidth = width;
+
+            if (element.type === 'stroke' && element.points) {
+                if (element.points.length < 2) return;
+
+                if (element.toolType === 'pattern') {
+                    // Patterns might be tricky, treat as solid for shadow for now
+                    ctx.beginPath();
+                    ctx.moveTo(element.points[0].x * scaleX, element.points[0].y * scaleY);
+                    for (let i = 1; i < element.points.length; i++) {
+                        ctx.lineTo(element.points[i].x * scaleX, element.points[i].y * scaleY);
+                    }
+                    ctx.stroke();
+                } else if (element.toolType === 'fill') {
+                    ctx.beginPath();
+                    ctx.moveTo(element.points[0].x * scaleX, element.points[0].y * scaleY);
+                    for (let i = 1; i < element.points.length; i++) {
+                        ctx.lineTo(element.points[i].x * scaleX, element.points[i].y * scaleY);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(element.points[0].x * scaleX, element.points[0].y * scaleY);
+                    for (let i = 1; i < element.points.length; i++) {
+                        ctx.lineTo(element.points[i].x * scaleX, element.points[i].y * scaleY);
+                    }
+                    ctx.stroke();
+                }
+            } else if ((element.type === 'hemorrhage' || element.type === 'spot') && element.position) {
+                ctx.beginPath();
+                ctx.ellipse(
+                    element.position.x * scaleX,
+                    element.position.y * scaleY,
+                    (element.width || 10) * scaleX / 2,
+                    (element.height || 10) * scaleY / 2,
+                    element.rotation || 0,
+                    0, Math.PI * 2
+                );
+                ctx.fill();
+            }
+        });
+
+        return new THREE.CanvasTexture(canvas);
     }, [elements]);
 
     // ... (Roughness/Normal map loader remains same)
@@ -392,18 +514,34 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
             }
             `
         );
-
-        if (materialRef.current) {
-            materialRef.current.userData.shader = shader;
-        }
     }, [displacementMap, detachmentHeight]);
+
+    // We need to capture the shader instance for both materials
+    const onBeforeCompileMain = React.useCallback((shader: any) => {
+        onBeforeCompile(shader);
+        if (materialRef.current) materialRef.current.userData.shader = shader;
+    }, [onBeforeCompile]);
+
+    const onBeforeCompileDepth = React.useCallback((shader: any) => {
+        onBeforeCompile(shader);
+        if (depthMaterialRef.current) depthMaterialRef.current.userData.shader = shader;
+    }, [onBeforeCompile]);
 
     React.useEffect(() => {
         if (materialRef.current && materialRef.current.userData.shader) {
             materialRef.current.userData.shader.uniforms.uDisplacementMap.value = displacementMap;
             materialRef.current.userData.shader.uniforms.uDetachmentHeight.value = detachmentHeight;
         }
+        if (depthMaterialRef.current && depthMaterialRef.current.userData.shader) {
+            depthMaterialRef.current.userData.shader.uniforms.uDisplacementMap.value = displacementMap;
+            depthMaterialRef.current.userData.shader.uniforms.uDetachmentHeight.value = detachmentHeight;
+        }
     }, [displacementMap, detachmentHeight]);
+
+    // Update clipping planes for custom materials if needed, 
+    // but standard materials handle it automatically via renderer.
+    // However, we need to ensure the material *knows* about them if we modify it?
+    // Actually, <meshStandardMaterial> has a clippingPlanes prop.
 
     React.useEffect(() => {
         let frameId: number;
@@ -412,6 +550,9 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
             const time = (Date.now() - startTime) / 1000;
             if (materialRef.current && materialRef.current.userData.shader) {
                 materialRef.current.userData.shader.uniforms.uTime.value = time;
+            }
+            if (depthMaterialRef.current && depthMaterialRef.current.userData.shader) {
+                depthMaterialRef.current.userData.shader.uniforms.uTime.value = time;
             }
             frameId = requestAnimationFrame(animate);
         };
@@ -474,18 +615,30 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
                 const points3D = e.points.map(p => map2DTo3D(p, e.zDepth || 0.5));
                 const curve = new THREE.CatmullRomCurve3(points3D);
                 const width3D = (e.width || 5) * 0.01;
+                const shape = new THREE.Shape();
+                shape.absarc(0, 0, width3D, 0, Math.PI * 2, false);
+
+                const extrudeSettings = {
+                    steps: 64,
+                    bevelEnabled: false,
+                    extrudePath: curve
+                };
+
                 return (
                     <mesh key={e.id}>
-                        <tubeGeometry args={[curve, 64, width3D, 8, false]} />
+                        <extrudeGeometry args={[shape, extrudeSettings]} />
                         <meshPhysicalMaterial
                             color="#880000"
                             transparent
-                            opacity={0.9}
-                            roughness={1}
+                            opacity={0.6}
+                            roughness={0.2}
                             metalness={0}
                             transmission={0.5}
                             thickness={1}
                             clearcoat={1.0}
+                            side={THREE.DoubleSide}
+                            clippingPlanes={clippingPlanes}
+                            clipShadows
                         />
                     </mesh>
                 );
@@ -501,24 +654,28 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
                             opacity={0.8}
                             roughness={0.2}
                             clearcoat={1.0}
+                            clippingPlanes={clippingPlanes}
+                            clipShadows
                         />
                     </mesh>
                 );
             }
         });
-    }, [elements]);
+    }, [elements, clippingPlanes]);
 
     return (
         <group>
             {/* RPE Layer (Behind Retina) */}
-            <mesh geometry={geometry} scale={[1.01, 1.01, 1.01]}>
+            <mesh geometry={geometry} scale={[1.01, 1.01, 1.01]} receiveShadow>
                 <meshStandardMaterial
                     color="#5c2a2a"
                     roughness={0.8}
                     side={THREE.FrontSide}
+                    clippingPlanes={clippingPlanes}
+                    clipShadows
                 />
             </mesh>
-            <mesh geometry={geometry}>
+            <mesh geometry={geometry} castShadow receiveShadow>
                 <meshStandardMaterial
                     ref={materialRef}
                     map={viewMode === 'chart' ? texture : retinaMap}
@@ -527,14 +684,25 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
                     side={THREE.FrontSide}
                     roughness={1.0}
                     metalness={0}
-                    onBeforeCompile={onBeforeCompile}
+                    onBeforeCompile={onBeforeCompileMain}
                     color="#ffffff" // Always white, let the texture define the color
+                    clippingPlanes={clippingPlanes}
+                    clipShadows
+                />
+                <meshDepthMaterial
+                    ref={depthMaterialRef}
+                    attach="customDepthMaterial"
+                    depthPacking={THREE.RGBADepthPacking}
+                    map={shadowMask}
+                    alphaTest={0.5}
+                    onBeforeCompile={onBeforeCompileDepth}
+                    clippingPlanes={clippingPlanes}
                 />
             </mesh>
             {vitreousElements}
             <mesh rotation={[0, 0, 0]} position={[0, 0, -2 * Math.cos(Math.PI * (7 / 8))]}>
                 <torusGeometry args={[2 * Math.sin(Math.PI * (7 / 8)), 0.05, 16, 100]} />
-                <meshBasicMaterial color="#333" />
+                <meshBasicMaterial color="#333" clippingPlanes={clippingPlanes} />
             </mesh>
             <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                 <sphereGeometry args={[2.02, 64, 64, 0, Math.PI * 2, 0, Math.PI * (7 / 8)]} />
@@ -543,6 +711,8 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
                     side={THREE.FrontSide}
                     transparent={true}
                     opacity={0.5}
+                    clippingPlanes={clippingPlanes}
+                    clipShadows
                 />
             </mesh>
         </group>
@@ -561,67 +731,116 @@ interface ThreeDViewProps {
 export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, elements, detachmentHeight, onClose, eyeSide }) => {
     const [lightRotation, setLightRotation] = React.useState(45);
     const [viewMode, setViewMode] = React.useState<'chart' | 'retina'>('chart');
+    const [isOphthalmoscopeMode, setIsOphthalmoscopeMode] = React.useState(false);
+    const [showHaze, setShowHaze] = React.useState(false);
+    const [showOCT, setShowOCT] = React.useState(false);
+    const [octSliceX, setOctSliceX] = React.useState(0);
+
+    const [showLightControl, setShowLightControl] = React.useState(false);
+
+    const clippingPlane = React.useMemo(() => {
+        const plane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
+        if (showOCT) {
+            plane.constant = octSliceX;
+        } else {
+            plane.constant = 100; // Move away if disabled
+        }
+        return plane;
+    }, [showOCT, octSliceX]);
+
+    const clippingPlanes = React.useMemo(() => [clippingPlane], [clippingPlane]);
 
     const lightX = 7 * Math.cos((lightRotation * Math.PI) / 180);
     const lightY = 7 * Math.sin((lightRotation * Math.PI) / 180);
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="w-full max-w-6xl h-[85vh] bg-gray-900 rounded-3xl overflow-hidden flex flex-col shadow-2xl border border-gray-800">
-                <div className="p-4 bg-gray-950 flex justify-between items-center border-b border-gray-800">
-                    <h2 className="text-lg font-semibold text-white">3D Fundus Visualization</h2>
-                    <div className="flex items-center gap-4">
-                        {/* View Mode Toggle */}
-                        <div className="flex items-center gap-1 bg-gray-900 p-1 rounded-xl border border-gray-800">
-                            <button
-                                onClick={() => setViewMode('chart')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2 transition-colors ${viewMode === 'chart' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
-                            >
-                                <FileText size={14} />
-                                Chart
-                            </button>
-                            <button
-                                onClick={() => setViewMode('retina')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2 transition-colors ${viewMode === 'retina' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
-                            >
-                                <Eye size={14} />
-                                Retina
-                            </button>
-                        </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm sm:p-4">
+            <div className="w-full h-full sm:max-w-6xl sm:h-[85vh] bg-black sm:bg-gray-900 sm:rounded-3xl overflow-hidden flex flex-col shadow-2xl border-0 sm:border border-gray-800 relative">
 
-                        <div className="flex items-center gap-3 bg-gray-900 px-4 py-2 rounded-xl border border-gray-800">
-                            <div className="flex flex-col gap-1">
-                                <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Light Direction</span>
-                                <span className="text-gray-500 text-[10px]">Drag to rotate</span>
-                            </div>
-                            <LightControl rotation={lightRotation} onChange={setLightRotation} />
-                        </div>
+                {/* Header (Minimal) */}
+                <div className="absolute top-0 left-0 right-0 z-20 p-4 flex justify-between items-start pointer-events-none">
+                    <h2 className="text-lg font-semibold text-white/90 drop-shadow-md pointer-events-auto">3D Visualization</h2>
+                    <button
+                        className="p-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-white transition-colors pointer-events-auto"
+                        onClick={onClose}
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
+
+                {/* View Mode Toggle (Top Center) */}
+                <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
+                    <div className="flex items-center bg-black/40 backdrop-blur-md rounded-full p-1 border border-white/10">
                         <button
-                            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors text-sm"
-                            onClick={onClose}
+                            onClick={() => setViewMode('chart')}
+                            className={`px-4 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 transition-all ${viewMode === 'chart' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
                         >
-                            Close
+                            <FileText size={14} />
+                            Chart
+                        </button>
+                        <button
+                            onClick={() => setViewMode('retina')}
+                            className={`px-4 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 transition-all ${viewMode === 'retina' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                        >
+                            <Eye size={14} />
+                            Retina
                         </button>
                     </div>
                 </div>
-                <div className="flex-1 w-full h-full bg-black relative">
-                    <Canvas camera={{ position: [0, 0, 5], fov: 50 }} shadows>
+
+                {/* 3D Canvas */}
+                <div className="absolute inset-0 z-0">
+                    <Canvas camera={{ position: [0, 0, 5], fov: 50 }} shadows gl={{ localClippingEnabled: true }}>
                         <color attach="background" args={['#050511']} />
-                        <ambientLight intensity={0.4} />
-                        <directionalLight
-                            position={[lightX, lightY, 5]}
-                            intensity={1.0}
-                            castShadow
-                        />
-                        <directionalLight
-                            position={[-5, 5, 5]}
-                            intensity={0.5}
-                        />
-                        <pointLight position={[0, 0, 2]} intensity={0.5} color="#ffffff" />
+
+                        {/* Lighting */}
+                        {!isOphthalmoscopeMode ? (
+                            <>
+                                <ambientLight intensity={0.4} />
+                                <directionalLight
+                                    position={[lightX, lightY, 5]}
+                                    intensity={1.0}
+                                    castShadow
+                                    shadow-mapSize={[1024, 1024]}
+                                />
+                                <directionalLight
+                                    position={[-5, 5, 5]}
+                                    intensity={0.5}
+                                />
+                                <pointLight position={[0, 0, 2]} intensity={0.5} color="#ffffff" />
+                            </>
+                        ) : (
+                            <>
+                                <ambientLight intensity={0.1} />
+                                <spotLight
+                                    position={[lightX, lightY, 6]}
+                                    angle={0.25}
+                                    penumbra={0.5}
+                                    intensity={20.0}
+                                    castShadow
+                                    shadow-mapSize={[1024, 1024]}
+                                    distance={20}
+                                    decay={1}
+                                />
+                                {/* Volumetric Beam Simulation (Cone) */}
+                                <mesh position={[lightX, lightY, 6]} rotation={[0, 0, (lightRotation + 90) * Math.PI / 180]}>
+                                    <coneGeometry args={[1, 10, 32, 1, true]} />
+                                    <meshBasicMaterial color="white" transparent opacity={0.05} side={THREE.DoubleSide} depthWrite={false} />
+                                </mesh>
+                            </>
+                        )}
 
                         <Suspense fallback={<Html center><div className="text-white">Loading 3D Model...</div></Html>}>
-                            <EyeModel key={textureUrl} textureUrl={textureUrl} elements={elements} detachmentHeight={detachmentHeight} eyeSide={eyeSide} viewMode={viewMode} />
+                            <EyeModel key={textureUrl} textureUrl={textureUrl} elements={elements} detachmentHeight={detachmentHeight} eyeSide={eyeSide} viewMode={viewMode} clippingPlanes={clippingPlanes} />
+                            {showHaze && <VitreousHaze clippingPlanes={clippingPlanes} />}
                         </Suspense>
+
+                        {showOCT && (
+                            <mesh position={[-octSliceX, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+                                <planeGeometry args={[4, 4]} />
+                                <meshBasicMaterial color="#00ff00" transparent opacity={0.1} side={THREE.DoubleSide} depthWrite={false} />
+                            </mesh>
+                        )}
 
                         <OrbitControls
                             enablePan={false}
@@ -631,6 +850,79 @@ export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, elements, de
                             maxPolarAngle={Math.PI / 1.5}
                         />
                     </Canvas>
+                </div>
+
+                {/* Controls Layer (Bottom) */}
+                <div className="absolute bottom-0 left-0 right-0 z-20 p-6 flex flex-col items-center gap-4 pointer-events-none">
+
+                    {/* Popovers Container */}
+                    <div className="flex flex-col items-center gap-4 w-full max-w-md pointer-events-auto transition-all duration-300">
+
+                        {/* OCT Slider Popover */}
+                        {showOCT && (
+                            <div className="w-full bg-black/60 backdrop-blur-md p-4 rounded-2xl border border-white/10 animate-in slide-in-from-bottom-4 fade-in">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-white text-xs font-bold flex items-center gap-2">
+                                        <ScanLine size={12} className="text-green-400" /> OCT Slice
+                                    </span>
+                                    <span className="text-white/50 text-[10px]">{octSliceX.toFixed(2)}</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="-2"
+                                    max="2"
+                                    step="0.01"
+                                    value={octSliceX}
+                                    onChange={(e) => setOctSliceX(parseFloat(e.target.value))}
+                                    className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-green-500"
+                                />
+                            </div>
+                        )}
+
+                        {/* Light Control Popover */}
+                        {showLightControl && (
+                            <div className="bg-black/60 backdrop-blur-md p-4 rounded-full border border-white/10 animate-in slide-in-from-bottom-4 fade-in">
+                                <LightControl rotation={lightRotation} onChange={setLightRotation} />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Bottom Dock */}
+                    <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-full p-2 flex items-center gap-2 shadow-2xl pointer-events-auto">
+
+                        <button
+                            onClick={() => setShowLightControl(!showLightControl)}
+                            className={`p-3 rounded-full transition-all ${showLightControl ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}
+                            title="Light Direction"
+                        >
+                            <Sun size={20} />
+                        </button>
+
+                        <button
+                            onClick={() => setIsOphthalmoscopeMode(!isOphthalmoscopeMode)}
+                            className={`p-3 rounded-full transition-all ${isOphthalmoscopeMode ? 'bg-yellow-500 text-white shadow-[0_0_15px_rgba(234,179,8,0.4)]' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}
+                            title="Ophthalmoscope Mode"
+                        >
+                            <Flashlight size={20} />
+                        </button>
+
+                        <button
+                            onClick={() => setShowHaze(!showHaze)}
+                            className={`p-3 rounded-full transition-all ${showHaze ? 'bg-gray-500 text-white shadow-[0_0_15px_rgba(107,114,128,0.4)]' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}
+                            title="Vitreous Haze"
+                        >
+                            <Cloud size={20} />
+                        </button>
+
+                        <button
+                            onClick={() => setShowOCT(!showOCT)}
+                            className={`p-3 rounded-full transition-all ${showOCT ? 'bg-green-500 text-white shadow-[0_0_15px_rgba(34,197,94,0.4)]' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}
+                            title="OCT Cross-Section"
+                        >
+                            <ScanLine size={20} />
+                        </button>
+
+                    </div>
                 </div>
             </div>
         </div>
