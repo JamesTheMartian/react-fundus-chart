@@ -137,11 +137,6 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
         ctx.fillStyle = '#000000';
         ctx.fillRect(0, 0, 512, 512);
 
-        // Draw Detachment strokes in White
-        const detachmentStrokes = elements.filter(s => (s.type === 'stroke' || s.type === 'tear') && (s.pathology === 'detachment' || s.pathology === 'tear'));
-
-        if (detachmentStrokes.length === 0) return null;
-
         // Scale factor from original 600x600 to 512x512
         const scaleX = 512 / 600;
         const scaleY = 512 / 600;
@@ -153,15 +148,34 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
         ctx.shadowBlur = 10;
         ctx.shadowColor = '#FFFFFF';
 
-        detachmentStrokes.forEach(stroke => {
+        // Draw Detachment strokes in White, and Eraser strokes in Black (to remove displacement)
+        elements.forEach(stroke => {
             if (!stroke.points || stroke.points.length < 2) return;
-            ctx.lineWidth = (stroke.width || 2) * scaleX;
+
+            const isDetachment = (stroke.type === 'stroke' || stroke.type === 'tear') && (stroke.pathology === 'detachment' || stroke.pathology === 'tear');
+            const isEraser = stroke.toolType === 'eraser';
+
+            if (!isDetachment && !isEraser) return;
+
             ctx.beginPath();
             ctx.moveTo(stroke.points[0].x * scaleX, stroke.points[0].y * scaleY);
             for (let i = 1; i < stroke.points.length; i++) {
                 ctx.lineTo(stroke.points[i].x * scaleX, stroke.points[i].y * scaleY);
             }
-            ctx.stroke();
+
+            if (isEraser) {
+                // Erase displacement
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.lineWidth = (stroke.width || 2) * scaleX * 2; // Double width for eraser to match 2D view
+                ctx.stroke();
+                // Reset to source-over for next strokes
+                ctx.globalCompositeOperation = 'source-over';
+            } else {
+                // Draw displacement
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.lineWidth = (stroke.width || 2) * scaleX;
+                ctx.stroke();
+            }
         });
 
         const tex = new THREE.CanvasTexture(canvas);
