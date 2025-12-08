@@ -297,25 +297,35 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
                 {/* Main Toolbar Pill */}
                 <div className="flex items-center gap-1.5 bg-white/90 backdrop-blur-xl border border-gray-200/50 shadow-xl shadow-gray-200/40 rounded-full p-2 pl-3 pr-2 w-full max-w-sm justify-between">
-                    {/* Tools Section */}
-                    <div className="flex gap-1 shrink-0">
-                        {[
-                            { id: 'select', icon: MousePointer },
-                            { id: 'pen', icon: Pen },
-                            { id: 'brush', icon: Brush },
-                            { id: 'eraser', icon: Eraser }
-                        ].map((tool) => (
-                            <button
-                                key={tool.id}
-                                onClick={() => setActiveTool(tool.id as ToolType)}
-                                className={`p-2.5 rounded-full flex items-center justify-center transition-all active:scale-90 ${activeTool === tool.id
-                                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30 ring-2 ring-blue-100'
-                                    : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
-                                    }`}
-                            >
-                                <tool.icon size={20} className={activeTool === tool.id ? 'stroke-[2.5px]' : ''} />
-                            </button>
-                        ))}
+                    {/* Tools Section (Horizontal Scroll) */}
+                    <div className="relative group flex items-center justify-center w-[130px] shrink-0">
+                        {/* Scroll hint - Left */}
+                        <div className="absolute left-0 w-4 h-full bg-gradient-to-r from-white/90 to-transparent z-10 pointer-events-none" />
+
+                        <div className="flex gap-1 overflow-x-auto snap-x snap-mandatory px-2 no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                            {[
+                                { id: 'select', icon: MousePointer, title: 'Select' },
+                                { id: 'pen', icon: Pen, title: 'Pen' },
+                                { id: 'brush', icon: Brush, title: 'Brush' },
+                                { id: 'pattern', icon: Grid, title: 'Pattern' },
+                                { id: 'fill', icon: PaintBucket, title: 'Fill Shape' },
+                                { id: 'eraser', icon: Eraser, title: 'Eraser' }
+                            ].map((tool) => (
+                                <button
+                                    key={tool.id}
+                                    onClick={() => setActiveTool(tool.id as ToolType)}
+                                    className={`p-2.5 rounded-full flex items-center justify-center transition-all active:scale-90 snap-center shrink-0 ${activeTool === tool.id
+                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30 ring-2 ring-blue-100'
+                                        : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
+                                        }`}
+                                >
+                                    <tool.icon size={20} className={activeTool === tool.id ? 'stroke-[2.5px]' : ''} />
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Scroll hint - Right */}
+                        <div className="absolute right-0 w-4 h-full bg-gradient-to-l from-white/90 to-transparent z-10 pointer-events-none" />
                     </div>
 
                     <div className="w-px h-6 bg-gray-200 shrink-0 mx-1"></div>
