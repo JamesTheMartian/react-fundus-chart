@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { FundusCanvas } from './components/FundusCanvas';
 import type { FundusCanvasRef } from './components/FundusCanvas';
 import { Toolbar } from './components/Toolbar';
@@ -126,7 +127,7 @@ function App() {
           >
             3D View
           </button>
-          <button onClick={() => setIsInverted(!isInverted)} className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
+          <button onClick={() => setIsInverted(!isInverted)} className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded active:scale-95 transition-transform">
             {isInverted ? 'Inverted' : 'Standard'}
           </button>
         </div>
@@ -167,23 +168,31 @@ function App() {
       <main className="flex-1 relative bg-gray-100 overflow-hidden flex items-center justify-center p-4 lg:p-8">
         {/* Canvas Container */}
         <div className="relative shadow-2xl shadow-black/10 rounded-full lg:rounded-2xl overflow-hidden bg-white ring-1 ring-black/5">
-          <FundusCanvas
-            ref={canvasRef}
-            width={600}
-            height={600}
-            activeColor={activeColor}
-            activeTool={activeTool}
-            brushSize={brushSize}
-            activePathology={activePathology}
-            isInverted={isInverted}
-            eyeSide={eyeSide}
-            onUndo={handleUndo}
-            onClear={handleClear}
-            onElementsChange={setCurrentElements}
-            onSelectionChange={setSelectedElementId}
-            selectedElementId={selectedElementId}
-            disabled={show3D}
-          />
+          <motion.div
+            initial={false}
+            animate={{ rotate: isInverted ? 180 : 0 }}
+            transition={{ type: "spring", stiffness: 260, damping: 20 }}
+            className="origin-center"
+          >
+            <FundusCanvas
+              ref={canvasRef}
+              width={600}
+              height={600}
+              activeColor={activeColor}
+              activeTool={activeTool}
+              brushSize={brushSize}
+              activePathology={activePathology}
+              isInverted={isInverted}
+              disableContextRotation={true}
+              eyeSide={eyeSide}
+              onUndo={handleUndo}
+              onClear={handleClear}
+              onElementsChange={setCurrentElements}
+              onSelectionChange={setSelectedElementId}
+              selectedElementId={selectedElementId}
+              disabled={show3D}
+            />
+          </motion.div>
         </div>
 
         {/* Floating Action Bar for Canvas (Zoom/Pan controls could go here) */}
@@ -239,7 +248,9 @@ function App() {
       </div>
 
       {show3D && <ThreeDView textureUrl={textureUrl} elements={currentElements} detachmentHeight={detachmentHeight} onClose={() => setShow3D(false)} eyeSide={eyeSide} />}
-      {showAI && <AIAnalysisModal imageData={textureUrl} onClose={() => setShowAI(false)} />}
+      <AnimatePresence>
+        {showAI && <AIAnalysisModal imageData={textureUrl} onClose={() => setShowAI(false)} />}
+      </AnimatePresence>
       <ColorLegendModal isOpen={showLegend} onClose={() => setShowLegend(false)} />
       <FeedbackPrompt
         isOpen={showFeedbackPrompt}

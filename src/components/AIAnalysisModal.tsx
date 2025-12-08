@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { analyzeChart } from '../services/aiService';
 import { Sparkles, X, Key, AlertCircle } from 'lucide-react';
 // import './AIAnalysisModal.css'; // Removed for Tailwind migration
@@ -58,8 +59,19 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ imageData, onC
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="w-full max-w-2xl bg-gray-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-gray-800">
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+        >
+            <motion.div
+                initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
+                className="w-full max-w-2xl bg-gray-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-gray-800"
+            >
                 <div className="p-4 bg-gray-950 border-b border-gray-800 flex justify-between items-center">
                     <h2 className="text-lg font-semibold text-white flex items-center gap-2">
                         <Sparkles size={20} className="text-blue-400" /> AI Chart Analysis
@@ -141,7 +153,7 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ imageData, onC
                         </div>
                     )}
                 </div>
-            </div>
-        </div>
+            </motion.div>
+        </motion.div>
     );
 };

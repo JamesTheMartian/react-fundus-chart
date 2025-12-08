@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import type { ColorCode, ToolType, EyeSide, PathologyType } from '../utils/types';
 import { MEDICAL_COLORS, TOOL_DESCRIPTIONS, PATHOLOGY_PRESETS } from '../utils/types';
@@ -98,18 +99,29 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                         { id: 'fill', icon: PaintBucket, title: 'Fill Shape' },
                         { id: 'eraser', icon: Eraser, title: 'Eraser' }
                     ].map((tool) => (
-                        <button
+                        <motion.button
                             key={tool.id}
                             onClick={() => setActiveTool(tool.id as ToolType)}
                             aria-label={`Select ${tool.title} Tool`}
-                            className={`p-3.5 rounded-xl flex items-center justify-center transition-all duration-200 active:scale-95 ${activeTool === tool.id
-                                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20 ring-2 ring-blue-600 ring-offset-2'
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className={`relative p-3.5 rounded-xl flex items-center justify-center transition-colors duration-200 ${activeTool === tool.id
+                                ? 'text-white shadow-md shadow-blue-500/20'
                                 : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700 border border-transparent hover:border-gray-200'
                                 }`}
                             title={tool.title}
                         >
-                            <tool.icon size={20} strokeWidth={activeTool === tool.id ? 2.5 : 2} />
-                        </button>
+                            {activeTool === tool.id && (
+                                <motion.div
+                                    layoutId="activeToolDesktop"
+                                    className="absolute inset-0 bg-blue-600 rounded-xl"
+                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                />
+                            )}
+                            <span className="relative z-10">
+                                <tool.icon size={20} strokeWidth={activeTool === tool.id ? 2.5 : 2} />
+                            </span>
+                        </motion.button>
                     ))}
                 </div>
             </div>
@@ -314,12 +326,21 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                                 <button
                                     key={tool.id}
                                     onClick={() => setActiveTool(tool.id as ToolType)}
-                                    className={`p-2.5 rounded-full flex items-center justify-center transition-all active:scale-90 snap-center shrink-0 ${activeTool === tool.id
-                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30 ring-2 ring-blue-100'
+                                    className={`relative p-2.5 rounded-full flex items-center justify-center transition-all active:scale-90 snap-center shrink-0 ${activeTool === tool.id
+                                        ? 'text-white shadow-md shadow-blue-500/30'
                                         : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
                                         }`}
                                 >
-                                    <tool.icon size={20} className={activeTool === tool.id ? 'stroke-[2.5px]' : ''} />
+                                    {activeTool === tool.id && (
+                                        <motion.div
+                                            layoutId="activeToolMobile"
+                                            className="absolute inset-0 bg-blue-600 rounded-full"
+                                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                        />
+                                    )}
+                                    <span className="relative z-10">
+                                        <tool.icon size={20} className={activeTool === tool.id ? 'stroke-[2.5px]' : ''} />
+                                    </span>
                                 </button>
                             ))}
                         </div>
@@ -379,89 +400,101 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             </div>
 
             {/* Mobile Menu Overlay */}
-            {showMobileMenu && (
-                <div className="lg:hidden fixed inset-0 z-50 bg-black/20 backdrop-blur-sm pointer-events-auto" onClick={() => setShowMobileMenu(false)}>
-                    <div
-                        className="absolute bottom-16 left-2 right-2 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 max-h-[70vh] overflow-y-auto flex flex-col gap-4 animate-in slide-in-from-bottom-10 fade-in duration-200"
-                        onClick={e => e.stopPropagation()}
+            <AnimatePresence>
+                {showMobileMenu && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="lg:hidden fixed inset-0 z-50 bg-black/20 backdrop-blur-sm pointer-events-auto"
+                        onClick={() => setShowMobileMenu(false)}
                     >
-                        <div className="flex justify-between items-center border-b border-gray-100 pb-2">
-                            <h3 className="font-semibold text-gray-900">Settings & Tools</h3>
-                            <button onClick={() => setShowMobileMenu(false)} className="p-1 bg-gray-100 rounded-full text-gray-500">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
-                            </button>
-                        </div>
-
-                        {/* Re-use components for the menu */}
-                        <div className="flex flex-col gap-4">
-                            {/* Colors */}
-                            <div>
-                                <h4 className="text-xs font-semibold text-gray-400 uppercase mb-2">Colors</h4>
-                                <div className="grid grid-cols-6 gap-2">
-                                    {(Object.keys(MEDICAL_COLORS) as ColorCode[]).map((color) => (
-                                        <button
-                                            key={color}
-                                            onClick={() => { setActiveColor(color); setShowMobileMenu(false); }}
-                                            className={`w-8 h-8 rounded-full border-2 ${activeColor === color ? 'border-gray-900 scale-110' : 'border-transparent'}`}
-                                            style={{ backgroundColor: MEDICAL_COLORS[color] }}
-                                        />
-                                    ))}
-                                </div>
+                        <motion.div
+                            initial={{ y: "100%" }}
+                            animate={{ y: 0 }}
+                            exit={{ y: "100%" }}
+                            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                            className="absolute bottom-4 left-2 right-2 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 max-h-[70vh] overflow-y-auto flex flex-col gap-4"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+                                <h3 className="font-semibold text-gray-900">Settings & Tools</h3>
+                                <button onClick={() => setShowMobileMenu(false)} className="p-1 bg-gray-100 rounded-full text-gray-500">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+                                </button>
                             </div>
 
-                            {/* Pathology */}
-                            <div>
-                                <h4 className="text-xs font-semibold text-gray-400 uppercase mb-2">Pathology</h4>
-                                <select
-                                    value={activePathology}
-                                    onChange={(e) => setActivePathology(e.target.value as PathologyType)}
-                                    className="w-full p-3 bg-gray-50 rounded-xl text-sm font-medium"
+                            {/* Re-use components for the menu */}
+                            <div className="flex flex-col gap-4">
+                                {/* Colors */}
+                                <div>
+                                    <h4 className="text-xs font-semibold text-gray-400 uppercase mb-2">Colors</h4>
+                                    <div className="grid grid-cols-6 gap-2">
+                                        {(Object.keys(MEDICAL_COLORS) as ColorCode[]).map((color) => (
+                                            <button
+                                                key={color}
+                                                onClick={() => { setActiveColor(color); setShowMobileMenu(false); }}
+                                                className={`w-8 h-8 rounded-full border-2 ${activeColor === color ? 'border-gray-900 scale-110' : 'border-transparent'}`}
+                                                style={{ backgroundColor: MEDICAL_COLORS[color] }}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Pathology */}
+                                <div>
+                                    <h4 className="text-xs font-semibold text-gray-400 uppercase mb-2">Pathology</h4>
+                                    <select
+                                        value={activePathology}
+                                        onChange={(e) => setActivePathology(e.target.value as PathologyType)}
+                                        className="w-full p-3 bg-gray-50 rounded-xl text-sm font-medium"
+                                    >
+                                        {(Object.keys(PATHOLOGY_PRESETS) as PathologyType[]).map((type) => (
+                                            <option key={type} value={type}>{PATHOLOGY_PRESETS[type].label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Brush Size */}
+                                <div>
+                                    <div className="flex justify-between mb-2">
+                                        <h4 className="text-xs font-semibold text-gray-400 uppercase">Brush Size</h4>
+                                        <span className="text-xs bg-gray-100 px-2 rounded">{brushSize}px</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="1"
+                                        max="50"
+                                        value={brushSize}
+                                        onChange={(e) => setBrushSize(Number(e.target.value))}
+                                        className="w-full h-2 bg-gray-200 rounded-lg accent-blue-500"
+                                    />
+                                </div>
+
+                                {/* Actions */}
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button onClick={on3DView} className="p-3 bg-gray-50 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+                                        <Box size={16} /> 3D View
+                                    </button>
+                                    <button onClick={onAnalyze} className="p-3 bg-blue-50 text-blue-600 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+                                        <Sparkles size={16} /> Analyze
+                                    </button>
+                                </div>
+
+                                <button onClick={onDownload} className="w-full p-3 border border-gray-200 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+                                    <Download size={16} /> Download Image
+                                </button>
+                                <button
+                                    onClick={() => window.open('https://docs.google.com/forms/d/e/1FAIpQLSfcqdmvqVsFLrVreXe2fJcR24GcSj954BA8edlgqzUXyFiT1g/viewform?usp=dialog', '_blank')}
+                                    className="w-full p-3 text-blue-600 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
                                 >
-                                    {(Object.keys(PATHOLOGY_PRESETS) as PathologyType[]).map((type) => (
-                                        <option key={type} value={type}>{PATHOLOGY_PRESETS[type].label}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Brush Size */}
-                            <div>
-                                <div className="flex justify-between mb-2">
-                                    <h4 className="text-xs font-semibold text-gray-400 uppercase">Brush Size</h4>
-                                    <span className="text-xs bg-gray-100 px-2 rounded">{brushSize}px</span>
-                                </div>
-                                <input
-                                    type="range"
-                                    min="1"
-                                    max="50"
-                                    value={brushSize}
-                                    onChange={(e) => setBrushSize(Number(e.target.value))}
-                                    className="w-full h-2 bg-gray-200 rounded-lg accent-blue-500"
-                                />
-                            </div>
-
-                            {/* Actions */}
-                            <div className="grid grid-cols-2 gap-2">
-                                <button onClick={on3DView} className="p-3 bg-gray-50 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
-                                    <Box size={16} /> 3D View
-                                </button>
-                                <button onClick={onAnalyze} className="p-3 bg-blue-50 text-blue-600 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
-                                    <Sparkles size={16} /> Analyze
+                                    <HelpCircle size={16} /> Give Feedback
                                 </button>
                             </div>
-
-                            <button onClick={onDownload} className="w-full p-3 border border-gray-200 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
-                                <Download size={16} /> Download Image
-                            </button>
-                            <button
-                                onClick={() => window.open('https://docs.google.com/forms/d/e/1FAIpQLSfcqdmvqVsFLrVreXe2fJcR24GcSj954BA8edlgqzUXyFiT1g/viewform?usp=dialog', '_blank')}
-                                className="w-full p-3 text-blue-600 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
-                            >
-                                <HelpCircle size={16} /> Give Feedback
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </>
     );
 };

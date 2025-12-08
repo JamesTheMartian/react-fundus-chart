@@ -33,13 +33,13 @@ export const FeedbackPrompt: React.FC<FeedbackPromptProps> = ({
                 <div className="flex flex-col gap-3">
                     <button
                         onClick={onFeedback}
-                        className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors shadow-sm shadow-blue-200"
+                        className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all shadow-sm shadow-blue-200 active:scale-95"
                     >
                         Give Feedback
                     </button>
                     <button
                         onClick={onClose}
-                        className="w-full py-2.5 px-4 bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-xl border border-gray-200 transition-colors"
+                        className="w-full py-2.5 px-4 bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-xl border border-gray-200 transition-all active:scale-95"
                     >
                         Maybe Later
                     </button>

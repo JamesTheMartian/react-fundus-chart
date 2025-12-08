@@ -30,6 +30,7 @@ interface FundusCanvasProps {
     onSelectionChange?: (id: string | null) => void;
     selectedElementId?: string | null;
     disabled?: boolean;
+    disableContextRotation?: boolean;
 }
 
 const CIRCLES = {
@@ -51,6 +52,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
     onSelectionChange,
     selectedElementId: propSelectedElementId,
     disabled = false,
+    disableContextRotation = false,
 }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [elements, setElements] = useState<FundusElement[]>([]);
@@ -440,7 +442,8 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         // Step 1: Draw Background on Main Canvas
         // Background is always source-over
         ctx.globalCompositeOperation = 'source-over';
-        drawBackground(ctx, center, radius, isInverted);
+        const shouldRotateContext = isInverted && !disableContextRotation;
+        drawBackground(ctx, center, radius, shouldRotateContext);
 
         // Step 2: Draw Strokes on Offscreen Canvas
         const layerCanvas = document.createElement('canvas');
@@ -450,20 +453,20 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
 
         if (layerCtx) {
             elements.forEach(s => {
-                drawElement(layerCtx, s, isInverted);
+                drawElement(layerCtx, s, shouldRotateContext);
             });
             if (currentElement) {
                 // Current element visibility check
                 const isVitreous = currentElement.layer === 'vitreous';
                 if ((isVitreous) || (!isVitreous)) {
-                    drawElement(layerCtx, currentElement, isInverted);
+                    drawElement(layerCtx, currentElement, shouldRotateContext);
                 }
             }
             // Step 3: Composite Layer onto Main
             ctx.drawImage(layerCanvas, 0, 0);
         }
 
-    }, [width, height, isInverted, elements, currentElement, eyeSide, hoveredElementId, selectedElementId]);
+    }, [width, height, isInverted, elements, currentElement, eyeSide, hoveredElementId, selectedElementId, disableContextRotation]);
 
     const getCanvasPoint = (e: React.MouseEvent | React.TouchEvent): Point => {
         const canvas = canvasRef.current;

@@ -761,7 +761,7 @@ export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, elements, de
                 <div className="absolute top-0 left-0 right-0 z-20 p-4 flex justify-between items-start pointer-events-none">
                     <h2 className="text-lg font-semibold text-white/90 drop-shadow-md pointer-events-auto">3D Visualization</h2>
                     <button
-                        className="p-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-white transition-colors pointer-events-auto"
+                        className="p-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-white transition-all pointer-events-auto active:scale-90"
                         onClick={onClose}
                     >
                         <X size={20} />
@@ -773,14 +773,14 @@ export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, elements, de
                     <div className="flex items-center bg-black/40 backdrop-blur-md rounded-full p-1 border border-white/10">
                         <button
                             onClick={() => setViewMode('chart')}
-                            className={`px-4 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 transition-all ${viewMode === 'chart' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                            className={`px-4 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 transition-all active:scale-95 ${viewMode === 'chart' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
                         >
                             <FileText size={14} />
                             Chart
                         </button>
                         <button
                             onClick={() => setViewMode('retina')}
-                            className={`px-4 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 transition-all ${viewMode === 'retina' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                            className={`px-4 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 transition-all active:scale-95 ${viewMode === 'retina' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
                         >
                             <Eye size={14} />
                             Retina
