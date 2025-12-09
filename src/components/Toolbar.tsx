@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { ColorCode, ToolType, EyeSide, PathologyType } from '../utils/types';
 import { MEDICAL_COLORS, TOOL_DESCRIPTIONS, PATHOLOGY_PRESETS } from '../utils/types';
 import { Pen, Brush, Grid, RotateCw, Trash2, Undo, Redo, Eye, Download, Eraser, Box, Sparkles, HelpCircle, PaintBucket, MousePointer } from 'lucide-react';
-// import './Toolbar.css'; // Removed for Tailwind migration
 
 interface ToolbarProps {
     activeColor: ColorCode;
@@ -30,9 +29,10 @@ interface ToolbarProps {
     onShowLegend: () => void;
     vesselOpacity: number;
     setVesselOpacity: (opacity: number) => void;
+    variant?: 'desktop' | 'mobile';
 }
 
-export const Toolbar: React.FC<ToolbarProps> = ({
+const DesktopToolbar: React.FC<ToolbarProps> = ({
     activeColor,
     setActiveColor,
     activeTool,
@@ -57,11 +57,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     vesselOpacity,
     setVesselOpacity
 }) => {
-    const [showMobileMenu, setShowMobileMenu] = React.useState(false);
-
-    // Desktop Sidebar Content (Full)
-    const SidebarContent = () => (
-        <>
+    return (
+        <div className="flex flex-col gap-5 p-2 w-full transition-all h-full">
             <div className="flex flex-col gap-3">
                 <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 ml-1">Eye Selection</h3>
                 <div className="flex gap-2 bg-gray-100/80 p-1.5 rounded-xl">
@@ -302,122 +299,136 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             >
                 <HelpCircle size={18} /> Give Feedback
             </button>
-        </>
+        </div>
     );
+};
 
-    // Mobile Bottom Bar (Tools + Menu Trigger)
-    const MobileBottomBar = () => {
-        const showBrushSlider = ['pen', 'brush', 'eraser'].includes(activeTool);
-
-        return (
-            <div className="flex flex-col items-center gap-3 w-full pointer-events-auto">
-
-                {/* Brush Size Slider (Conditional) */}
-                {showBrushSlider && (
-                    <div className="bg-white/90 backdrop-blur-md border border-gray-200 shadow-lg rounded-2xl p-2 px-4 flex items-center gap-3 w-[80%] max-w-[280px] animate-in slide-in-from-bottom-2 fade-in duration-300">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider shrink-0">Size</span>
-                        <input
-                            type="range"
-                            min="1"
-                            max="50"
-                            value={brushSize}
-                            onChange={(e) => setBrushSize(Number(e.target.value))}
-                            className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                        />
-                        <span className="text-xs font-bold text-gray-600 w-6 text-center">{brushSize}</span>
-                    </div>
-                )}
-
-                {/* Main Toolbar Pill */}
-                <div className="flex items-center gap-1.5 bg-white/90 backdrop-blur-xl border border-gray-200/50 shadow-xl shadow-gray-200/40 rounded-full p-2 pl-3 pr-2 w-full max-w-sm justify-between">
-                    {/* Tools Section (Horizontal Scroll) */}
-                    <div className="relative group flex items-center justify-center w-[130px] shrink-0">
-                        {/* Scroll hint - Left */}
-                        <div className="absolute left-0 w-4 h-full bg-gradient-to-r from-white/90 to-transparent z-10 pointer-events-none" />
-
-                        <div className="flex gap-1 overflow-x-auto snap-x snap-mandatory px-2 no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                            {[
-                                { id: 'select', icon: MousePointer, title: 'Select' },
-                                { id: 'pen', icon: Pen, title: 'Pen' },
-                                { id: 'brush', icon: Brush, title: 'Brush' },
-                                { id: 'pattern', icon: Grid, title: 'Pattern' },
-                                { id: 'fill', icon: PaintBucket, title: 'Fill Shape' },
-                                { id: 'eraser', icon: Eraser, title: 'Eraser' }
-                            ].map((tool) => (
-                                <button
-                                    key={tool.id}
-                                    onClick={() => setActiveTool(tool.id as ToolType)}
-                                    className={`relative p-2.5 rounded-full flex items-center justify-center transition-all active:scale-90 snap-center shrink-0 ${activeTool === tool.id
-                                        ? 'text-white shadow-md shadow-blue-500/30'
-                                        : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
-                                        }`}
-                                >
-                                    {activeTool === tool.id && (
-                                        <motion.div
-                                            layoutId="activeToolMobile"
-                                            className="absolute inset-0 bg-blue-600 rounded-full"
-                                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                        />
-                                    )}
-                                    <span className="relative z-10">
-                                        <tool.icon size={20} className={activeTool === tool.id ? 'stroke-[2.5px]' : ''} />
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Scroll hint - Right */}
-                        <div className="absolute right-0 w-4 h-full bg-gradient-to-l from-white/90 to-transparent z-10 pointer-events-none" />
-                    </div>
-
-                    <div className="w-px h-6 bg-gray-200 shrink-0 mx-1"></div>
-
-                    {/* Active Color (Compact) */}
-                    <button
-                        onClick={() => setShowMobileMenu(true)}
-                        className="w-9 h-9 rounded-full border border-gray-100 shadow-inner shrink-0 relative hover:scale-105 transition-transform"
-                        style={{ backgroundColor: MEDICAL_COLORS[activeColor] }}
-                    >
-                        {/* Color Indicator Ring if white/bright */}
-                        <div className="absolute inset-0 rounded-full ring-1 ring-inset ring-black/5"></div>
-                    </button>
-
-                    <div className="w-px h-6 bg-gray-200 shrink-0 mx-1"></div>
-
-                    {/* Undo/Redo (Compact) */}
-                    <div className="flex gap-0.5 shrink-0">
-                        <button onClick={onUndo} className="p-2 rounded-full hover:bg-gray-100 text-gray-500 active:scale-90 transition-transform">
-                            <Undo size={18} />
-                        </button>
-                        <button onClick={onRedo} className="p-2 rounded-full hover:bg-gray-100 text-gray-500 active:scale-90 transition-transform">
-                            <Redo size={18} />
-                        </button>
-                    </div>
-
-                    <div className="w-px h-6 bg-gray-200 shrink-0 mx-1"></div>
-
-                    {/* Menu Trigger */}
-                    <button
-                        onClick={() => setShowMobileMenu(!showMobileMenu)}
-                        className={`p-2 rounded-full flex items-center justify-center transition-all shrink-0 ${showMobileMenu ? 'bg-gray-900 text-white shadow-lg' : 'hover:bg-gray-100 text-gray-700'}`}
-                    >
-                        <Box size={20} />
-                    </button>
-                </div>
-            </div>
-        );
-    };
+const MobileToolbar: React.FC<ToolbarProps> = ({
+    activeColor,
+    setActiveColor,
+    activeTool,
+    setActiveTool,
+    brushSize,
+    setBrushSize,
+    activePathology,
+    setActivePathology,
+    detachmentHeight,
+    setDetachmentHeight,
+    isInverted,
+    toggleInverted,
+    eyeSide,
+    setEyeSide,
+    onUndo,
+    onRedo,
+    onClear,
+    onDownload,
+    on3DView,
+    onAnalyze,
+    onShowLegend,
+    vesselOpacity,
+    setVesselOpacity
+}) => {
+    const [showMobileMenu, setShowMobileMenu] = React.useState(false);
+    const showBrushSlider = ['pen', 'brush', 'eraser'].includes(activeTool);
 
     return (
         <>
-            {/* Desktop Sidebar */}
-            <div className="hidden lg:flex flex-col gap-5 p-2 w-full transition-all h-full">
-                <SidebarContent />
-            </div>
+            <div className="w-full h-full flex items-center">
+                <div className="flex flex-col items-center gap-3 w-full pointer-events-auto">
 
-            {/* Mobile Bottom Bar */}
-            <div className="lg:hidden w-full h-full flex items-center">
-                <MobileBottomBar />
+                    {/* Brush Size Slider (Conditional) */}
+                    {showBrushSlider && (
+                        <div className="bg-white/90 backdrop-blur-md border border-gray-200 shadow-lg rounded-2xl p-2 px-4 flex items-center gap-3 w-[80%] max-w-[280px] animate-in slide-in-from-bottom-2 fade-in duration-300">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider shrink-0">Size</span>
+                            <input
+                                type="range"
+                                min="1"
+                                max="50"
+                                value={brushSize}
+                                onChange={(e) => setBrushSize(Number(e.target.value))}
+                                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                            />
+                            <span className="text-xs font-bold text-gray-600 w-6 text-center">{brushSize}</span>
+                        </div>
+                    )}
+
+                    {/* Main Toolbar Pill */}
+                    <div className="flex items-center gap-1.5 bg-white/90 backdrop-blur-xl border border-gray-200/50 shadow-xl shadow-gray-200/40 rounded-full p-2 pl-3 pr-2 w-full max-w-sm justify-between">
+                        {/* Tools Section (Horizontal Scroll) */}
+                        <div className="relative group flex items-center justify-center w-[130px] shrink-0">
+                            {/* Scroll hint - Left */}
+                            <div className="absolute left-0 w-4 h-full bg-gradient-to-r from-white/90 to-transparent z-10 pointer-events-none" />
+
+                            <div className="flex gap-1 overflow-x-auto snap-x snap-mandatory px-2 no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                                {[
+                                    { id: 'select', icon: MousePointer, title: 'Select' },
+                                    { id: 'pen', icon: Pen, title: 'Pen' },
+                                    { id: 'brush', icon: Brush, title: 'Brush' },
+                                    { id: 'pattern', icon: Grid, title: 'Pattern' },
+                                    { id: 'fill', icon: PaintBucket, title: 'Fill Shape' },
+                                    { id: 'eraser', icon: Eraser, title: 'Eraser' }
+                                ].map((tool) => (
+                                    <button
+                                        key={tool.id}
+                                        onClick={() => setActiveTool(tool.id as ToolType)}
+                                        className={`relative p-2.5 rounded-full flex items-center justify-center transition-all active:scale-90 snap-center shrink-0 ${activeTool === tool.id
+                                            ? 'text-white shadow-md shadow-blue-500/30'
+                                            : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
+                                            }`}
+                                    >
+                                        {activeTool === tool.id && (
+                                            <motion.div
+                                                layoutId="activeToolMobile"
+                                                className="absolute inset-0 bg-blue-600 rounded-full"
+                                                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                            />
+                                        )}
+                                        <span className="relative z-10">
+                                            <tool.icon size={20} className={activeTool === tool.id ? 'stroke-[2.5px]' : ''} />
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Scroll hint - Right */}
+                            <div className="absolute right-0 w-4 h-full bg-gradient-to-l from-white/90 to-transparent z-10 pointer-events-none" />
+                        </div>
+
+                        <div className="w-px h-6 bg-gray-200 shrink-0 mx-1"></div>
+
+                        {/* Active Color (Compact) */}
+                        <button
+                            onClick={() => setShowMobileMenu(true)}
+                            className="w-9 h-9 rounded-full border border-gray-100 shadow-inner shrink-0 relative hover:scale-105 transition-transform"
+                            style={{ backgroundColor: MEDICAL_COLORS[activeColor] }}
+                        >
+                            {/* Color Indicator Ring if white/bright */}
+                            <div className="absolute inset-0 rounded-full ring-1 ring-inset ring-black/5"></div>
+                        </button>
+
+                        <div className="w-px h-6 bg-gray-200 shrink-0 mx-1"></div>
+
+                        {/* Undo/Redo (Compact) */}
+                        <div className="flex gap-0.5 shrink-0">
+                            <button onClick={onUndo} className="p-2 rounded-full hover:bg-gray-100 text-gray-500 active:scale-90 transition-transform">
+                                <Undo size={18} />
+                            </button>
+                            <button onClick={onRedo} className="p-2 rounded-full hover:bg-gray-100 text-gray-500 active:scale-90 transition-transform">
+                                <Redo size={18} />
+                            </button>
+                        </div>
+
+                        <div className="w-px h-6 bg-gray-200 shrink-0 mx-1"></div>
+
+                        {/* Menu Trigger */}
+                        <button
+                            onClick={() => setShowMobileMenu(!showMobileMenu)}
+                            className={`p-2 rounded-full flex items-center justify-center transition-all shrink-0 ${showMobileMenu ? 'bg-gray-900 text-white shadow-lg' : 'hover:bg-gray-100 text-gray-700'}`}
+                        >
+                            <Box size={20} />
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* Mobile Menu Overlay */}
@@ -535,4 +546,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             </AnimatePresence>
         </>
     );
+};
+
+export const Toolbar: React.FC<ToolbarProps> = (props) => {
+    if (props.variant === 'mobile') {
+        return <MobileToolbar {...props} />;
+    }
+    return <DesktopToolbar {...props} />;
 };

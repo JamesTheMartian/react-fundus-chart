@@ -164,6 +164,7 @@ function App() {
           onShowLegend={() => setShowLegend(true)}
           vesselOpacity={vesselOpacity}
           setVesselOpacity={setVesselOpacity}
+          variant="desktop"
         />
       </aside>
 
@@ -250,6 +251,7 @@ function App() {
           onShowLegend={() => setShowLegend(true)}
           vesselOpacity={vesselOpacity}
           setVesselOpacity={setVesselOpacity}
+          variant="mobile"
         />
       </div>
 
