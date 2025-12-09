@@ -138,6 +138,7 @@ function App() {
         <div className="p-5 border-b border-gray-100 flex flex-col gap-0.5">
           <h1 className="text-lg font-bold text-gray-900 tracking-tight">Retinal Charting</h1>
           <p className="text-xs font-medium text-blue-600 uppercase tracking-widest">Pro Studio</p>
+          <p className="text-[10px] text-gray-400 mt-0.5 font-mono">v{__APP_VERSION__}</p>
         </div>
         <Toolbar
           activeColor={activeColor}
