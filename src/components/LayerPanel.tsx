@@ -46,7 +46,7 @@ export const LayerPanel: React.FC<LayerPanelProps> = ({
 
             <div className="flex-1 overflow-y-auto flex flex-col gap-2 max-h-[200px] lg:max-h-none overflow-x-hidden p-1">
                 <AnimatePresence mode='popLayout'>
-                    {[...elements].reverse().map(element => (
+                    {[...elements].reverse().filter(e => e.toolType !== 'eraser').map(element => (
                         <motion.div
                             layout
                             initial={{ opacity: 0, x: 20 }}
@@ -92,7 +92,7 @@ export const LayerPanel: React.FC<LayerPanelProps> = ({
                         </motion.div>
                     ))}
                 </AnimatePresence>
-                {elements.length === 0 && (
+                {elements.filter(e => e.toolType !== 'eraser').length === 0 && (
                     <div className="text-center text-gray-400 text-sm py-8 italic">No objects drawn</div>
                 )}
             </div>

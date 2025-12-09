@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import type { FundusElement, ColorCode, ToolType, Point, EyeSide, PathologyType } from '../utils/types';
-import { MEDICAL_COLORS } from '../utils/types';
+import { MEDICAL_COLORS, PATHOLOGY_PRESETS } from '../utils/types';
 // import './FundusCanvas.css'; // Removed for Tailwind migration
 
 export interface FundusCanvasRef {
@@ -168,6 +168,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             // For now, simple distance check
             const threshold = (element.width || 2) + 5; // Hit radius
             return element.points.some(p => {
+                if (!p) return false;
                 const dx = p.x - point.x;
                 const dy = p.y - point.y;
                 return Math.sqrt(dx * dx + dy * dy) < threshold;
@@ -235,30 +236,68 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
                     ctx.beginPath();
                     // Simple pattern: Dotted line for now
                     ctx.setLineDash([5, 10]);
-                    ctx.moveTo(element.points[0].x, element.points[0].y);
-                    for (let i = 1; i < element.points.length; i++) {
-                        ctx.lineTo(element.points[i].x, element.points[i].y);
+
+                    let isFirst = true;
+                    for (const p of element.points) {
+                        if (!p) {
+                            ctx.stroke();
+                            ctx.beginPath();
+                            isFirst = true;
+                            continue;
+                        }
+                        if (isFirst) {
+                            ctx.moveTo(p.x, p.y);
+                            isFirst = false;
+                        } else {
+                            ctx.lineTo(p.x, p.y);
+                        }
                     }
                     ctx.stroke();
                 }
-                if (element.toolType === 'fill') {
+                else if (element.toolType === 'fill') {
                     ctx.globalAlpha = 0.5;
                     ctx.fillStyle = MEDICAL_COLORS[element.color];
-                    ctx.beginPath();
-                    ctx.moveTo(element.points[0].x, element.points[0].y);
-                    for (let i = 1; i < element.points.length; i++) {
-                        ctx.lineTo(element.points[i].x, element.points[i].y);
+
+                    let currentPath: Point[] = [];
+                    const drawFill = (pts: Point[]) => {
+                        if (pts.length < 2) return;
+                        ctx.beginPath();
+                        ctx.moveTo(pts[0].x, pts[0].y);
+                        for (let i = 1; i < pts.length; i++) {
+                            ctx.lineTo(pts[i].x, pts[i].y);
+                        }
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                    };
+
+                    for (const p of element.points) {
+                        if (!p) {
+                            drawFill(currentPath);
+                            currentPath = [];
+                        } else {
+                            currentPath.push(p);
+                        }
                     }
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.stroke(); // Optional: Draw border as well
+                    drawFill(currentPath);
                     ctx.globalAlpha = 1.0;
                 }
                 else {
                     ctx.beginPath();
-                    ctx.moveTo(element.points[0].x, element.points[0].y);
-                    for (let i = 1; i < element.points.length; i++) {
-                        ctx.lineTo(element.points[i].x, element.points[i].y);
+                    let isFirst = true;
+                    for (const p of element.points) {
+                        if (!p) {
+                            ctx.stroke();
+                            ctx.beginPath();
+                            isFirst = true;
+                            continue;
+                        }
+                        if (isFirst) {
+                            ctx.moveTo(p.x, p.y);
+                            isFirst = false;
+                        } else {
+                            ctx.lineTo(p.x, p.y);
+                        }
                     }
                     ctx.stroke();
                 }
@@ -282,9 +321,20 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
 
             if (element.type === 'stroke' && element.points) {
                 ctx.beginPath();
-                ctx.moveTo(element.points[0].x, element.points[0].y);
-                for (let i = 1; i < element.points.length; i++) {
-                    ctx.lineTo(element.points[i].x, element.points[i].y);
+                let isFirst = true;
+                for (const p of element.points) {
+                    if (!p) {
+                        ctx.stroke();
+                        ctx.beginPath();
+                        isFirst = true;
+                        continue;
+                    }
+                    if (isFirst) {
+                        ctx.moveTo(p.x, p.y);
+                        isFirst = false;
+                    } else {
+                        ctx.lineTo(p.x, p.y);
+                    }
                 }
                 ctx.stroke();
             } else if ((element.type === 'hemorrhage' || element.type === 'spot') && element.position) {
@@ -525,19 +575,64 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         // Clear redo stack on new action
         setRedoStack([]);
 
-        setCurrentElement({
-            id: Date.now().toString(),
-            type: 'stroke',
-            points: [point],
-            color: activeColor,
-            width: brushSize,
-            toolType: activeTool,
-            pathology: activePathology,
-            timestamp: Date.now(),
-            visible: true,
-            layer: activePathology === 'vitreous_hemorrhage' ? 'vitreous' : 'retina',
-            zDepth: activePathology === 'vitreous_hemorrhage' ? 0.5 : 0
-        });
+        // Check for grouping
+        const lastElement = elements[elements.length - 1];
+        const now = Date.now();
+        const GROUP_THRESHOLD = 2000; // 2 seconds
+
+        let shouldGroup = false;
+        if (lastElement && lastElement.type === 'stroke') {
+            const isSameTool = lastElement.toolType === activeTool;
+            const isRecent = (now - lastElement.timestamp) < GROUP_THRESHOLD;
+
+            if (activeTool === 'eraser' && isSameTool && isRecent) {
+                // Always group eraser strokes regardless of other properties
+                shouldGroup = true;
+            } else {
+                const isSameColor = lastElement.color === activeColor;
+                const isSamePathology = lastElement.pathology === activePathology;
+
+                // Group if same tool/properties and recent
+                if (isSameTool && isSameColor && isSamePathology && isRecent) {
+                    shouldGroup = true;
+                }
+            }
+        }
+
+        if (shouldGroup && lastElement && lastElement.points) {
+            // Remove last element from state and make it current
+            setElements(prev => prev.slice(0, -1));
+            setCurrentElement({
+                ...lastElement,
+                points: [...lastElement.points, null, point], // Add break then new point
+                timestamp: now // Update timestamp to keep the chain alive
+            });
+        } else {
+            let name = 'Element';
+            if (activeTool === 'eraser') {
+                const count = elements.filter(e => e.toolType === 'eraser').length + 1;
+                name = `Eraser ${count}`;
+            } else {
+                const pathologyName = PATHOLOGY_PRESETS[activePathology]?.label || 'Element';
+                const count = elements.filter(e => e.pathology === activePathology && e.toolType !== 'eraser').length + 1;
+                name = `${pathologyName} ${count}`;
+            }
+
+            setCurrentElement({
+                id: Date.now().toString(),
+                type: 'stroke',
+                points: [point],
+                color: activeColor,
+                width: brushSize,
+                toolType: activeTool,
+                pathology: activePathology,
+                timestamp: Date.now(),
+                visible: true,
+                layer: activePathology === 'vitreous_hemorrhage' ? 'vitreous' : 'retina',
+                zDepth: activePathology === 'vitreous_hemorrhage' ? 0.5 : 0,
+                name: name
+            });
+        }
     };
 
     const handleMove = (e: React.MouseEvent | React.TouchEvent) => {

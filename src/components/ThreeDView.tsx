@@ -242,23 +242,49 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
             ctx.lineWidth = width;
 
             if (element.type === 'stroke' && element.points) {
-                if (element.points.length < 2) return;
+                if (element.points.length < 2 && !element.points[0]) return;
 
                 if (element.toolType === 'pattern') {
                     ctx.beginPath();
                     ctx.setLineDash([5 * scaleX, 10 * scaleX]);
-                    ctx.moveTo(element.points[0].x * scaleX, element.points[0].y * scaleY);
-                    for (let i = 1; i < element.points.length; i++) {
-                        ctx.lineTo(element.points[i].x * scaleX, element.points[i].y * scaleY);
+
+                    let isFirst = true;
+                    for (const p of element.points) {
+                        if (!p) {
+                            ctx.stroke();
+                            ctx.beginPath();
+                            isFirst = true;
+                            continue;
+                        }
+                        if (isFirst) {
+                            ctx.moveTo(p.x * scaleX, p.y * scaleY);
+                            isFirst = false;
+                        } else {
+                            ctx.lineTo(p.x * scaleX, p.y * scaleY);
+                        }
                     }
                     ctx.stroke();
                     ctx.setLineDash([]);
                 } else if (element.toolType === 'fill') {
                     ctx.globalAlpha = 0.5;
                     ctx.beginPath();
-                    ctx.moveTo(element.points[0].x * scaleX, element.points[0].y * scaleY);
-                    for (let i = 1; i < element.points.length; i++) {
-                        ctx.lineTo(element.points[i].x * scaleX, element.points[i].y * scaleY);
+
+                    let isFirst = true;
+                    for (const p of element.points) {
+                        if (!p) {
+                            ctx.closePath();
+                            ctx.fill();
+                            ctx.stroke();
+                            ctx.beginPath();
+                            isFirst = true;
+                            continue;
+                        }
+                        if (isFirst) {
+                            ctx.moveTo(p.x * scaleX, p.y * scaleY);
+                            isFirst = false;
+                        } else {
+                            ctx.lineTo(p.x * scaleX, p.y * scaleY);
+                        }
                     }
                     ctx.closePath();
                     ctx.fill();
@@ -270,9 +296,21 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
                         ctx.globalAlpha = element.layer === 'vitreous' ? 0.3 : 0.5;
                     }
                     ctx.beginPath();
-                    ctx.moveTo(element.points[0].x * scaleX, element.points[0].y * scaleY);
-                    for (let i = 1; i < element.points.length; i++) {
-                        ctx.lineTo(element.points[i].x * scaleX, element.points[i].y * scaleY);
+
+                    let isFirst = true;
+                    for (const p of element.points) {
+                        if (!p) {
+                            ctx.stroke();
+                            ctx.beginPath();
+                            isFirst = true;
+                            continue;
+                        }
+                        if (isFirst) {
+                            ctx.moveTo(p.x * scaleX, p.y * scaleY);
+                            isFirst = false;
+                        } else {
+                            ctx.lineTo(p.x * scaleX, p.y * scaleY);
+                        }
                     }
                     ctx.stroke();
                     ctx.globalAlpha = 1.0;
@@ -324,35 +362,44 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
 
             if (!isDetachment && !isEraser) return;
 
-            ctx.beginPath();
-            ctx.moveTo(stroke.points[0].x * scaleX, stroke.points[0].y * scaleY);
-            for (let i = 1; i < stroke.points.length; i++) {
-                ctx.lineTo(stroke.points[i].x * scaleX, stroke.points[i].y * scaleY);
-            }
-
             if (isEraser) {
                 ctx.globalCompositeOperation = 'destination-out';
                 ctx.lineWidth = (stroke.width || 2) * scaleX * 2;
-
-                if (stroke.toolType === 'fill') {
-                    ctx.closePath();
-                    ctx.fill();
-                } else {
-                    ctx.stroke();
-                }
-                ctx.globalCompositeOperation = 'source-over';
             } else {
                 ctx.globalCompositeOperation = 'source-over';
                 ctx.lineWidth = (stroke.width || 2) * scaleX;
+            }
 
-                if (stroke.toolType === 'fill') {
-                    ctx.fillStyle = '#FFFFFF';
-                    ctx.closePath();
-                    ctx.fill();
+            ctx.beginPath();
+            let isFirst = true;
+            for (const p of stroke.points) {
+                if (!p) {
+                    if (stroke.toolType === 'fill') {
+                        ctx.closePath();
+                        ctx.fill();
+                    } else {
+                        ctx.stroke();
+                    }
+                    ctx.beginPath();
+                    isFirst = true;
+                    continue;
+                }
+                if (isFirst) {
+                    ctx.moveTo(p.x * scaleX, p.y * scaleY);
+                    isFirst = false;
                 } else {
-                    ctx.stroke();
+                    ctx.lineTo(p.x * scaleX, p.y * scaleY);
                 }
             }
+
+            if (stroke.toolType === 'fill') {
+                if (!isEraser) ctx.fillStyle = '#FFFFFF';
+                ctx.closePath();
+                ctx.fill();
+            } else {
+                ctx.stroke();
+            }
+            ctx.globalCompositeOperation = 'source-over';
         });
 
         const tex = new THREE.CanvasTexture(canvas);
@@ -387,29 +434,63 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
             ctx.lineWidth = width;
 
             if (element.type === 'stroke' && element.points) {
-                if (element.points.length < 2) return;
+                if (element.points.length < 2 && !element.points[0]) return;
 
                 if (element.toolType === 'pattern') {
                     // Patterns might be tricky, treat as solid for shadow for now
                     ctx.beginPath();
-                    ctx.moveTo(element.points[0].x * scaleX, element.points[0].y * scaleY);
-                    for (let i = 1; i < element.points.length; i++) {
-                        ctx.lineTo(element.points[i].x * scaleX, element.points[i].y * scaleY);
+                    let isFirst = true;
+                    for (const p of element.points) {
+                        if (!p) {
+                            ctx.stroke();
+                            ctx.beginPath();
+                            isFirst = true;
+                            continue;
+                        }
+                        if (isFirst) {
+                            ctx.moveTo(p.x * scaleX, p.y * scaleY);
+                            isFirst = false;
+                        } else {
+                            ctx.lineTo(p.x * scaleX, p.y * scaleY);
+                        }
                     }
                     ctx.stroke();
                 } else if (element.toolType === 'fill') {
                     ctx.beginPath();
-                    ctx.moveTo(element.points[0].x * scaleX, element.points[0].y * scaleY);
-                    for (let i = 1; i < element.points.length; i++) {
-                        ctx.lineTo(element.points[i].x * scaleX, element.points[i].y * scaleY);
+                    let isFirst = true;
+                    for (const p of element.points) {
+                        if (!p) {
+                            ctx.closePath();
+                            ctx.fill();
+                            ctx.beginPath();
+                            isFirst = true;
+                            continue;
+                        }
+                        if (isFirst) {
+                            ctx.moveTo(p.x * scaleX, p.y * scaleY);
+                            isFirst = false;
+                        } else {
+                            ctx.lineTo(p.x * scaleX, p.y * scaleY);
+                        }
                     }
                     ctx.closePath();
                     ctx.fill();
                 } else {
                     ctx.beginPath();
-                    ctx.moveTo(element.points[0].x * scaleX, element.points[0].y * scaleY);
-                    for (let i = 1; i < element.points.length; i++) {
-                        ctx.lineTo(element.points[i].x * scaleX, element.points[i].y * scaleY);
+                    let isFirst = true;
+                    for (const p of element.points) {
+                        if (!p) {
+                            ctx.stroke();
+                            ctx.beginPath();
+                            isFirst = true;
+                            continue;
+                        }
+                        if (isFirst) {
+                            ctx.moveTo(p.x * scaleX, p.y * scaleY);
+                            isFirst = false;
+                        } else {
+                            ctx.lineTo(p.x * scaleX, p.y * scaleY);
+                        }
                     }
                     ctx.stroke();
                 }
@@ -610,56 +691,70 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
     };
 
     const vitreousElements = React.useMemo(() => {
-        return elements.filter(e => e.layer === 'vitreous' && e.visible).map((e) => {
-            if (e.type === 'stroke' && e.points && e.points.length > 1) {
-                const points3D = e.points.map(p => map2DTo3D(p, e.zDepth || 0.5));
-                const curve = new THREE.CatmullRomCurve3(points3D);
-                const width3D = (e.width || 5) * 0.01;
-                const shape = new THREE.Shape();
-                shape.absarc(0, 0, width3D, 0, Math.PI * 2, false);
+        return elements.filter(e => e.layer === 'vitreous' && e.visible).flatMap((e) => {
+            // Split points into segments
+            const segments: Point[][] = [];
+            let currentSegment: Point[] = [];
+            e.points?.forEach(p => {
+                if (p) currentSegment.push(p);
+                else if (currentSegment.length > 0) {
+                    segments.push(currentSegment);
+                    currentSegment = [];
+                }
+            });
+            if (currentSegment.length > 0) segments.push(currentSegment);
 
-                const extrudeSettings = {
-                    steps: 64,
-                    bevelEnabled: false,
-                    extrudePath: curve
-                };
+            return segments.map((segment, index) => {
+                if (e.type === 'stroke' && segment.length > 1) {
+                    const points3D = segment.map(p => map2DTo3D(p, e.zDepth || 0.5));
+                    const curve = new THREE.CatmullRomCurve3(points3D);
+                    const width3D = (e.width || 5) * 0.01;
+                    const shape = new THREE.Shape();
+                    shape.absarc(0, 0, width3D, 0, Math.PI * 2, false);
 
-                return (
-                    <mesh key={e.id}>
-                        <extrudeGeometry args={[shape, extrudeSettings]} />
-                        <meshPhysicalMaterial
-                            color="#880000"
-                            transparent
-                            opacity={0.6}
-                            roughness={0.2}
-                            metalness={0}
-                            transmission={0.5}
-                            thickness={1}
-                            clearcoat={1.0}
-                            side={THREE.DoubleSide}
-                            clippingPlanes={clippingPlanes}
-                            clipShadows
-                        />
-                    </mesh>
-                );
-            } else {
-                const p = e.position || (e.points && e.points[0]) || { x: 0, y: 0 };
-                const pos = map2DTo3D(p, e.zDepth || 0.5);
-                return (
-                    <mesh key={e.id} position={pos}>
-                        <sphereGeometry args={[0.15, 16, 16]} />
-                        <meshPhysicalMaterial
-                            color="#880000"
-                            transparent
-                            opacity={0.8}
-                            roughness={0.2}
-                            clearcoat={1.0}
-                            clippingPlanes={clippingPlanes}
-                            clipShadows
-                        />
-                    </mesh>
-                );
-            }
+                    const extrudeSettings = {
+                        steps: 64,
+                        bevelEnabled: false,
+                        extrudePath: curve
+                    };
+
+                    return (
+                        <mesh key={`${e.id}-${index}`}>
+                            <extrudeGeometry args={[shape, extrudeSettings]} />
+                            <meshPhysicalMaterial
+                                color="#880000"
+                                transparent
+                                opacity={0.6}
+                                roughness={0.2}
+                                metalness={0}
+                                transmission={0.5}
+                                thickness={1}
+                                clearcoat={1.0}
+                                side={THREE.DoubleSide}
+                                clippingPlanes={clippingPlanes}
+                                clipShadows
+                            />
+                        </mesh>
+                    );
+                } else {
+                    const p = e.position || (segment.length > 0 && segment[0]) || { x: 0, y: 0 };
+                    const pos = map2DTo3D(p, e.zDepth || 0.5);
+                    return (
+                        <mesh key={`${e.id}-${index}`} position={pos}>
+                            <sphereGeometry args={[0.15, 16, 16]} />
+                            <meshPhysicalMaterial
+                                color="#880000"
+                                transparent
+                                opacity={0.8}
+                                roughness={0.2}
+                                clearcoat={1.0}
+                                clippingPlanes={clippingPlanes}
+                                clipShadows
+                            />
+                        </mesh>
+                    );
+                }
+            });
         });
     }, [elements, clippingPlanes]);
 
