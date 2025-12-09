@@ -31,6 +31,7 @@ interface FundusCanvasProps {
     selectedElementId?: string | null;
     disabled?: boolean;
     disableContextRotation?: boolean;
+    vesselOpacity?: number;
 }
 
 const CIRCLES = {
@@ -53,6 +54,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
     selectedElementId: propSelectedElementId,
     disabled = false,
     disableContextRotation = false,
+    vesselOpacity = 0,
 }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [elements, setElements] = useState<FundusElement[]>([]);
@@ -60,6 +62,27 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
     const [currentElement, setCurrentElement] = useState<FundusElement | null>(null);
     const [hoveredElementId, setHoveredElementId] = useState<string | null>(null);
     const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+    const vesselMapRef = useRef<HTMLImageElement | null>(null);
+
+    useEffect(() => {
+        const img = new Image();
+        // Use BASE_URL to handle deployment subpaths
+        const baseUrl = import.meta.env.BASE_URL;
+        // Remove trailing slash from base if present to avoid double slashes if path starts with /
+        // Actually BASE_URL usually ends with / if set.
+        // Let's be safe:
+        const cleanBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+        img.src = `${cleanBase}/textures/vessel_map.png`;
+
+        img.onload = () => {
+            vesselMapRef.current = img;
+            setVesselMapLoaded(true);
+        };
+        img.onerror = (e) => {
+            console.error('Failed to load vessel map:', img.src, e);
+        };
+    }, []);
+    const [vesselMapLoaded, setVesselMapLoaded] = useState(false);
 
     const drawBackground = (ctx: CanvasRenderingContext2D, center: Point, radius: number, inverted: boolean) => {
         ctx.save();
@@ -77,6 +100,18 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
 
         // Clear background
         ctx.fillRect(0, 0, width, height);
+
+        // Draw Vessel Map Overlay
+        if (vesselOpacity > 0 && vesselMapRef.current) {
+            ctx.save();
+            ctx.globalAlpha = vesselOpacity;
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+            ctx.clip();
+            // Draw image covering the circle
+            ctx.drawImage(vesselMapRef.current, center.x - radius, center.y - radius, radius * 2, radius * 2);
+            ctx.restore();
+        }
 
         // Draw Concentric Circles
         [CIRCLES.EQUATOR, CIRCLES.ORA_SERRATA, CIRCLES.PARS_PLANA].forEach(ratio => {
@@ -466,7 +501,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             ctx.drawImage(layerCanvas, 0, 0);
         }
 
-    }, [width, height, isInverted, elements, currentElement, eyeSide, hoveredElementId, selectedElementId, disableContextRotation]);
+    }, [width, height, isInverted, elements, currentElement, eyeSide, hoveredElementId, selectedElementId, disableContextRotation, vesselOpacity, vesselMapLoaded]);
 
     const getCanvasPoint = (e: React.MouseEvent | React.TouchEvent): Point => {
         const canvas = canvasRef.current;

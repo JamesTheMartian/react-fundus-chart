@@ -18,6 +18,7 @@ function App() {
   const [brushSize, setBrushSize] = useState<number>(2);
   const [activePathology, setActivePathology] = useState<PathologyType>('normal');
   const [detachmentHeight, setDetachmentHeight] = useState<number>(0.3);
+  const [vesselOpacity, setVesselOpacity] = useState<number>(0);
   const [isInverted, setIsInverted] = useState(false);
   const [eyeSide, setEyeSide] = useState<EyeSide>('OD');
   const [show3D, setShow3D] = useState(false);
@@ -161,6 +162,8 @@ function App() {
           on3DView={handle3DView}
           onAnalyze={handleAnalyze}
           onShowLegend={() => setShowLegend(true)}
+          vesselOpacity={vesselOpacity}
+          setVesselOpacity={setVesselOpacity}
         />
       </aside>
 
@@ -185,6 +188,7 @@ function App() {
               isInverted={isInverted}
               disableContextRotation={true}
               eyeSide={eyeSide}
+              vesselOpacity={vesselOpacity}
               onUndo={handleUndo}
               onClear={handleClear}
               onElementsChange={setCurrentElements}
@@ -244,6 +248,8 @@ function App() {
           on3DView={handle3DView}
           onAnalyze={handleAnalyze}
           onShowLegend={() => setShowLegend(true)}
+          vesselOpacity={vesselOpacity}
+          setVesselOpacity={setVesselOpacity}
         />
       </div>
 

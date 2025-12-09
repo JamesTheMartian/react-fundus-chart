@@ -28,6 +28,8 @@ interface ToolbarProps {
     on3DView: () => void;
     onAnalyze: () => void;
     onShowLegend: () => void;
+    vesselOpacity: number;
+    setVesselOpacity: (opacity: number) => void;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
@@ -51,7 +53,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     onDownload,
     on3DView,
     onAnalyze,
-    onShowLegend
+    onShowLegend,
+    vesselOpacity,
+    setVesselOpacity
 }) => {
     const [showMobileMenu, setShowMobileMenu] = React.useState(false);
 
@@ -185,6 +189,23 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                     />
                 </div>
             )}
+
+            <div className="flex flex-col gap-3">
+                <div className="flex justify-between items-center">
+                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 ml-1">Vessel Map</h3>
+                    <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-md">{Math.round(vesselOpacity * 100)}%</span>
+                </div>
+                <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={vesselOpacity}
+                    onChange={(e) => setVesselOpacity(Number(e.target.value))}
+                    aria-label="Adjust Vessel Map Opacity"
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 hover:accent-blue-700"
+                />
+            </div>
 
             <div className="h-px bg-gray-100 w-full"></div>
 
@@ -467,6 +488,23 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                                         max="50"
                                         value={brushSize}
                                         onChange={(e) => setBrushSize(Number(e.target.value))}
+                                        className="w-full h-2 bg-gray-200 rounded-lg accent-blue-500"
+                                    />
+                                </div>
+
+                                {/* Vessel Opacity */}
+                                <div>
+                                    <div className="flex justify-between mb-2">
+                                        <h4 className="text-xs font-semibold text-gray-400 uppercase">Vessel Map</h4>
+                                        <span className="text-xs bg-gray-100 px-2 rounded">{Math.round(vesselOpacity * 100)}%</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="1"
+                                        step="0.05"
+                                        value={vesselOpacity}
+                                        onChange={(e) => setVesselOpacity(Number(e.target.value))}
                                         className="w-full h-2 bg-gray-200 rounded-lg accent-blue-500"
                                     />
                                 </div>
