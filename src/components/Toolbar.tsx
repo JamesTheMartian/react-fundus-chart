@@ -314,8 +314,6 @@ const MobileToolbar: React.FC<ToolbarProps> = ({
     setActivePathology,
     detachmentHeight,
     setDetachmentHeight,
-    isInverted,
-    toggleInverted,
     eyeSide,
     setEyeSide,
     onUndo,
@@ -446,10 +444,10 @@ const MobileToolbar: React.FC<ToolbarProps> = ({
                             animate={{ y: 0 }}
                             exit={{ y: "100%" }}
                             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                            className="absolute bottom-4 left-2 right-2 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 max-h-[70vh] overflow-y-auto flex flex-col gap-4"
+                            className="absolute bottom-4 left-2 right-2 bg-white rounded-2xl shadow-2xl border border-gray-100 max-h-[70vh] flex flex-col overflow-hidden"
                             onClick={e => e.stopPropagation()}
                         >
-                            <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+                            <div className="flex justify-between items-center border-b border-gray-100 p-4 pb-2 bg-white z-10 shrink-0">
                                 <h3 className="font-semibold text-gray-900">Settings & Tools</h3>
                                 <button onClick={() => setShowMobileMenu(false)} className="p-1 bg-gray-100 rounded-full text-gray-500">
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
@@ -457,7 +455,32 @@ const MobileToolbar: React.FC<ToolbarProps> = ({
                             </div>
 
                             {/* Re-use components for the menu */}
-                            <div className="flex flex-col gap-4">
+                            <div className="overflow-y-auto p-4 pt-2 flex flex-col gap-4 relative flex-1">
+                                {/* Eye Selection */}
+                                <div>
+                                    <h4 className="text-xs font-semibold text-gray-400 uppercase mb-2">Eye Selection</h4>
+                                    <div className="flex gap-2 bg-gray-50 p-1 rounded-xl">
+                                        <button
+                                            onClick={() => setEyeSide('OD')}
+                                            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-semibold transition-all ${eyeSide === 'OD'
+                                                ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5'
+                                                : 'text-gray-500 hover:text-gray-700'
+                                                }`}
+                                        >
+                                            <Eye size={16} className={eyeSide === 'OD' ? 'stroke-[2.5px]' : ''} /> OD
+                                        </button>
+                                        <button
+                                            onClick={() => setEyeSide('OS')}
+                                            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-semibold transition-all ${eyeSide === 'OS'
+                                                ? 'bg-white text-blue-600 shadow-sm ring-1 ring-black/5'
+                                                : 'text-gray-500 hover:text-gray-700'
+                                                }`}
+                                        >
+                                            <Eye size={16} className={eyeSide === 'OS' ? 'stroke-[2.5px]' : ''} /> OS
+                                        </button>
+                                    </div>
+                                </div>
+
                                 {/* Colors */}
                                 <div>
                                     <h4 className="text-xs font-semibold text-gray-400 uppercase mb-2">Colors</h4>
@@ -503,6 +526,26 @@ const MobileToolbar: React.FC<ToolbarProps> = ({
                                     />
                                 </div>
 
+                                {/* Detachment height */}
+                                {activePathology === 'detachment' && (
+                                    <div className="flex flex-col gap-3 bg-blue-50/50 p-3 rounded-xl border border-blue-100/50">
+                                        <div className="flex justify-between items-center">
+                                            <h3 className="text-[10px] font-semibold uppercase tracking-widest text-blue-500">Detachment Height</h3>
+                                            <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded-md">{detachmentHeight}</span>
+                                        </div>
+                                        <input
+                                            type="range"
+                                            min="0.1"
+                                            max="1.0"
+                                            step="0.1"
+                                            value={detachmentHeight}
+                                            onChange={(e) => setDetachmentHeight(Number(e.target.value))}
+                                            aria-label="Adjust Detachment Height"
+                                            className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                        />
+                                    </div>
+                                )}
+
                                 {/* Vessel Opacity */}
                                 <div>
                                     <div className="flex justify-between mb-2">
@@ -540,6 +583,9 @@ const MobileToolbar: React.FC<ToolbarProps> = ({
                                     <HelpCircle size={16} /> Give Feedback
                                 </button>
                             </div>
+
+                            {/* Scroll Indicator Gradient */}
+                            <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none rounded-b-2xl" />
                         </motion.div>
                     </motion.div>
                 )}
