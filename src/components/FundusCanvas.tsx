@@ -148,11 +148,11 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         const discAngle = eyeSide === 'OD' ? 0 : Math.PI;
         const discDist = radius * 0.3;
 
-        const discX = center.x + Math.cos(discAngle) * discDist;
+        const discX = center.x - 15 + Math.cos(discAngle) * discDist;
         const discY = center.y - 10 + Math.sin(discAngle) * discDist;
 
         ctx.beginPath();
-        ctx.ellipse(discX, discY, 20, 25, 0, 0, Math.PI * 2);
+        ctx.ellipse(discX, discY, 15, 15, 0, 0, Math.PI * 2);
         ctx.fillStyle = '#dd708aff'; // Light yellow
         ctx.fill();
         ctx.stroke();
