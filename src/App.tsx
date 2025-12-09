@@ -119,7 +119,10 @@ function App() {
     <div className="h-screen w-screen overflow-hidden bg-gray-100 flex flex-col lg:flex-row font-sans text-gray-900">
       {/* Header for Mobile / Tablet - Minimal */}
       <header className="lg:hidden h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 shrink-0 z-20">
-        <h1 className="text-sm font-semibold text-gray-900">Retinal Fundus Charting</h1>
+        <div className="flex items-baseline gap-2">
+          <h1 className="text-sm font-semibold text-gray-900">Retinal Fundus Charting</h1>
+          <span className="text-[10px] text-gray-400 font-mono">v{__APP_VERSION__}</span>
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handle3DView}
