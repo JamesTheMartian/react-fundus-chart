@@ -1,4 +1,4 @@
-.PHONY: help install dev build lint preview clean
+.PHONY: help install dev build lint preview clean version-info version-patch version-minor version-major publish
 
 # Default target
 .DEFAULT_GOAL := help
@@ -39,3 +39,6 @@ version-minor: ## Bump minor version (0.x.0)
 
 version-major: ## Bump major version (x.0.0)
 	npm version major
+
+publish: ## Push changes and tags to remote
+	git push && git push --tags
