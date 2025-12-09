@@ -26,3 +26,16 @@ preview: ## Preview the production build
 
 clean: ## Clean up build artifacts and node_modules
 	rm -rf dist node_modules
+
+version-info: ## Show current version info
+	@echo "Package version: $$(npm pkg get version)"
+	@echo "Git tag: $$(git describe --tags --always 2>/dev/null || echo 'no-tags')"
+
+version-patch: ## Bump patch version (0.0.x)
+	npm version patch
+
+version-minor: ## Bump minor version (0.x.0)
+	npm version minor
+
+version-major: ## Bump major version (x.0.0)
+	npm version major
