@@ -110,6 +110,18 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             ctx.clip();
             // Draw image covering the circle
             ctx.drawImage(vesselMapRef.current, center.x - radius, center.y - radius, radius * 2, radius * 2);
+            // If eyeSide is OS, invert the image
+            if (eyeSide === 'OD') {
+                ctx.drawImage(vesselMapRef.current, center.x - radius, center.y - radius, radius * 2, radius * 2);
+            }
+            else {
+                // draw image must be flipped
+                ctx.save();
+                ctx.translate(center.x, center.y);
+                ctx.scale(-1, 1);
+                ctx.drawImage(vesselMapRef.current, -radius, -radius, radius * 2, radius * 2);
+                ctx.restore();
+            }
             ctx.restore();
         }
 
@@ -183,7 +195,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         const discAngle = eyeSide === 'OD' ? 0 : Math.PI;
         const discDist = radius * 0.3;
 
-        const discX = center.x - 15 + Math.cos(discAngle) * discDist;
+        const discX = center.x - (eyeSide === 'OD' ? 15 : -15) + Math.cos(discAngle) * discDist;
         const discY = center.y - 10 + Math.sin(discAngle) * discDist;
 
         ctx.beginPath();
