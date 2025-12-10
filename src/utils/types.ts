@@ -19,7 +19,7 @@ export type ElementType = 'stroke' | 'hemorrhage' | 'tear' | 'spot' | 'circle';
 export interface FundusElement {
   id: string;
   type: ElementType;
-  points?: Point[]; // For strokes
+  points?: (Point | null)[]; // For strokes, null indicates a break (new stroke in same layer)
   position?: Point; // For shapes (center)
   radius?: number; // For circles
   width?: number; // For ellipses/strokes
@@ -39,7 +39,7 @@ export interface FundusElement {
 
 export interface Stroke extends FundusElement {
   type: 'stroke';
-  points: Point[];
+  points: (Point | null)[];
 }
 
 export interface CanvasState {
