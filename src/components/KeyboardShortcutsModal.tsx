@@ -24,7 +24,7 @@ const shortcuts: ShortcutItem[] = [
     { keys: ['Delete'], description: 'Delete Selection', category: 'Actions' },
 
     // View
-    { keys: ['3'], description: 'Toggle 3D View (when holding Shift)', category: 'View' },
+    { keys: ['`'], description: 'Toggle 3D View', category: 'View' },
     { keys: ['D'], description: 'Toggle Dark Mode', category: 'View' },
     { keys: ['?'], description: 'Show This Help', category: 'View' },
     { keys: ['Esc'], description: 'Close Modal / Deselect', category: 'View' },

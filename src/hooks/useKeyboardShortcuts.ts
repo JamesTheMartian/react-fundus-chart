@@ -127,13 +127,12 @@ export const useKeyboardShortcuts = ({
                     setActiveTool('pen');
                     break;
                 case '3':
-                    if (e.shiftKey) {
-                        e.preventDefault();
-                        on3DView();
-                    } else {
-                        e.preventDefault();
-                        setActiveTool('brush');
-                    }
+                    e.preventDefault();
+                    setActiveTool('brush');
+                    break;
+                case '`':
+                    e.preventDefault();
+                    on3DView();
                     break;
                 case '4':
                     e.preventDefault();
