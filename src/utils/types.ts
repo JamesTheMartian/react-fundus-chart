@@ -7,7 +7,8 @@ export type ColorCode =
   | 'green'  // Vitreous Opacities, Hemorrhage, Foreign Bodies
   | 'brown'  // Choroidal/Uveal tissue, Pigment
   | 'yellow' // Exudates, Edema, Drusen
-  | 'black'; // Sclerosed vessels, Scars
+  | 'black'  // Sclerosed vessels, Scars
+  | 'pink';  // Normal/General annotations
 
 export interface Point {
   x: number;
@@ -49,11 +50,12 @@ export interface CanvasState {
 
 export const MEDICAL_COLORS: Record<ColorCode, string> = {
   red: '#FF0000',
-  blue: '#0000FF',
+  blue: '#468ff5ff',
   green: '#008000',
   brown: '#8B4513',
   yellow: '#FFFF00',
   black: '#000000',
+  pink: '#dea6bdff',
 };
 
 export const TOOL_DESCRIPTIONS: Record<ColorCode, string> = {
@@ -63,6 +65,7 @@ export const TOOL_DESCRIPTIONS: Record<ColorCode, string> = {
   brown: 'Choroidal/Uveal tissue, Pigment',
   yellow: 'Exudates, Edema, Drusen',
   black: 'Sclerosed vessels, Scars',
+  pink: 'Normal/General annotations',
 };
 
 export type PathologyType = 'normal' | 'hemorrhage' | 'vitreous_hemorrhage' | 'tear' | 'detachment' | 'hole' | 'drusen' | 'cotton_wool' | 'hard_exudate' | 'edema' | 'lattice';
@@ -78,12 +81,12 @@ export const PATHOLOGY_PRESETS: Record<PathologyType, PathologyPreset> = {
   hemorrhage: { label: 'Hemorrhage', color: 'red', tool: 'brush', width: 15 },
   vitreous_hemorrhage: { label: 'Vitreous Hemorrhage', color: 'green', tool: 'brush', width: 30 },
   tear: { label: 'Retinal Tear', color: 'red', tool: 'pen', width: 5 },
-  detachment: { label: 'Retinal Detachment', color: 'black', tool: 'brush', width: 20 },
+  detachment: { label: 'Retinal Detachment', color: 'blue', tool: 'brush', width: 20 },
   hole: { label: 'Retinal Hole', color: 'red', tool: 'pen', width: 10 },
   drusen: { label: 'Drusen', color: 'yellow', tool: 'pen', width: 2 }, // Often dots
   cotton_wool: { label: 'Cotton Wool Spot', color: 'yellow', tool: 'brush', width: 5 },
   hard_exudate: { label: 'Hard Exudate', color: 'yellow', tool: 'pen', width: 3 },
   edema: { label: 'Edema', color: 'yellow', tool: 'brush', width: 15 },
   lattice: { label: 'Lattice Degeneration', color: 'blue', tool: 'pattern', width: 4 },
-  normal: { label: 'Normal Drawing', color: 'black', tool: 'pen', width: 2 },
+  normal: { label: 'Normal Drawing', color: 'pink', tool: 'pen', width: 2 },
 };

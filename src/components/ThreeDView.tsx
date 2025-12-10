@@ -1,11 +1,11 @@
 import React, { Suspense } from 'react';
 import { Canvas, useLoader } from '@react-three/fiber';
-import { OrbitControls, Html } from '@react-three/drei';
+import { OrbitControls, Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import type { FundusElement, EyeSide, Point } from '../utils/types';
 // import './ThreeDView.css'; // Removed for Tailwind migration
 
-import { Sun, Eye, FileText, Flashlight, Cloud, ScanLine, X } from 'lucide-react';
+import { Sun, Eye, FileText, Flashlight, Cloud, ScanLine, X, Tag } from 'lucide-react';
 import { useFrame } from '@react-three/fiber';
 
 interface LightControlProps {
@@ -706,35 +706,33 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
 
             return segments.map((segment, index) => {
                 if (e.type === 'stroke' && segment.length > 1) {
-                    const points3D = segment.map(p => map2DTo3D(p, e.zDepth || 0.5));
-                    const curve = new THREE.CatmullRomCurve3(points3D);
-                    const width3D = (e.width || 5) * 0.01;
-                    const shape = new THREE.Shape();
-                    shape.absarc(0, 0, width3D, 0, Math.PI * 2, false);
 
-                    const extrudeSettings = {
-                        steps: 64,
-                        bevelEnabled: false,
-                        extrudePath: curve
-                    };
-
+                    // Cloud-like rendering with overlapping spheres
+                    const sphereSize = (e.width || 15) * 0.008;
                     return (
-                        <mesh key={`${e.id}-${index}`}>
-                            <extrudeGeometry args={[shape, extrudeSettings]} />
-                            <meshPhysicalMaterial
-                                color="#880000"
-                                transparent
-                                opacity={0.6}
-                                roughness={0.2}
-                                metalness={0}
-                                transmission={0.5}
-                                thickness={1}
-                                clearcoat={1.0}
-                                side={THREE.DoubleSide}
-                                clippingPlanes={clippingPlanes}
-                                clipShadows
-                            />
-                        </mesh>
+                        <group key={`${e.id}-${index}`}>
+                            {segment.map((pt, ptIdx) => {
+                                const pos = map2DTo3D(pt, e.zDepth || 0.5);
+                                // Vary size for organic look
+                                const sizeFactor = 0.7 + Math.sin(ptIdx * 1.5) * 0.3;
+                                return (
+                                    <mesh key={ptIdx} position={pos}>
+                                        <sphereGeometry args={[sphereSize * sizeFactor, 12, 12]} />
+                                        <meshPhysicalMaterial
+                                            color="#990000"
+                                            transparent
+                                            opacity={0.35}
+                                            roughness={1}
+                                            metalness={0}
+                                            side={THREE.DoubleSide}
+                                            clippingPlanes={clippingPlanes}
+                                            clipShadows
+                                            depthWrite={false}
+                                        />
+                                    </mesh>
+                                );
+                            })}
+                        </group>
                     );
                 } else {
                     const p = e.position || (segment.length > 0 && segment[0]) || { x: 0, y: 0 };
@@ -745,9 +743,9 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
                             <meshPhysicalMaterial
                                 color="#880000"
                                 transparent
-                                opacity={0.8}
-                                roughness={0.2}
-                                clearcoat={1.0}
+                                opacity={0.65}
+                                roughness={0.6}
+                                clearcoat={0.2}
                                 clippingPlanes={clippingPlanes}
                                 clipShadows
                             />
@@ -829,21 +827,21 @@ export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, elements, de
     const [isOphthalmoscopeMode, setIsOphthalmoscopeMode] = React.useState(false);
     const [showHaze, setShowHaze] = React.useState(false);
     const [showOCT, setShowOCT] = React.useState(false);
-    const [octSliceX, setOctSliceX] = React.useState(0);
+    const [showAnnotations, setShowAnnotations] = React.useState(false);
+    const [sliceMin, setSliceMin] = React.useState(-2);
+    const [sliceMax, setSliceMax] = React.useState(2);
 
     const [showLightControl, setShowLightControl] = React.useState(false);
 
-    const clippingPlane = React.useMemo(() => {
-        const plane = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
-        if (showOCT) {
-            plane.constant = octSliceX;
-        } else {
-            plane.constant = 100; // Move away if disabled
+    // Two clipping planes for bidirectional slicing
+    const clippingPlanes = React.useMemo(() => {
+        if (!showOCT) {
+            return [];
         }
-        return plane;
-    }, [showOCT, octSliceX]);
-
-    const clippingPlanes = React.useMemo(() => [clippingPlane], [clippingPlane]);
+        const planeLeft = new THREE.Plane(new THREE.Vector3(1, 0, 0), -sliceMin);
+        const planeRight = new THREE.Plane(new THREE.Vector3(-1, 0, 0), sliceMax);
+        return [planeLeft, planeRight];
+    }, [showOCT, sliceMin, sliceMax]);
 
     const lightX = 7 * Math.cos((lightRotation * Math.PI) / 180);
     const lightY = 7 * Math.sin((lightRotation * Math.PI) / 180);
@@ -931,11 +929,69 @@ export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, elements, de
                         </Suspense>
 
                         {showOCT && (
-                            <mesh position={[-octSliceX, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
-                                <planeGeometry args={[4, 4]} />
-                                <meshBasicMaterial color="#00ff00" transparent opacity={0.1} side={THREE.DoubleSide} depthWrite={false} />
-                            </mesh>
+                            <>
+                                <mesh position={[sliceMin, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+                                    <planeGeometry args={[4, 4]} />
+                                    <meshBasicMaterial color="#00ff00" transparent opacity={0.1} side={THREE.DoubleSide} depthWrite={false} />
+                                </mesh>
+                                <mesh position={[sliceMax, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+                                    <planeGeometry args={[4, 4]} />
+                                    <meshBasicMaterial color="#00ff00" transparent opacity={0.1} side={THREE.DoubleSide} depthWrite={false} />
+                                </mesh>
+                            </>
                         )}
+
+                        {/* 3D Annotations */}
+                        {showAnnotations && elements.filter(e => e.visible && e.toolType !== 'eraser').map(element => {
+                            let avgX = 300, avgY = 300;
+                            if (element.type === 'stroke' && element.points && element.points.length > 0) {
+                                const validPoints = element.points.filter(p => p !== null) as { x: number; y: number }[];
+                                if (validPoints.length > 0) {
+                                    avgX = validPoints.reduce((sum, p) => sum + p.x, 0) / validPoints.length;
+                                    avgY = validPoints.reduce((sum, p) => sum + p.y, 0) / validPoints.length;
+                                }
+                            } else if (element.position) {
+                                avgX = element.position.x;
+                                avgY = element.position.y;
+                            }
+
+                            // Use same spherical mapping as EyeModel
+                            const u = avgX / 600;
+                            const v = 1 - (avgY / 600);
+                            const dx = u - 0.5;
+                            const dy = v - 0.5;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            const maxR = 0.5;
+                            const r = Math.min(dist, maxR);
+                            const theta = (r / maxR) * (Math.PI * (7 / 8));
+                            const phi = Math.atan2(dy, dx);
+                            const R = 2;
+
+                            const surfaceX = R * Math.sin(theta) * Math.cos(phi);
+                            const surfaceY = R * Math.sin(theta) * Math.sin(phi);
+                            const surfaceZ = -R * Math.cos(theta);
+
+                            // Label offset outward
+                            const norm = Math.sqrt(surfaceX * surfaceX + surfaceY * surfaceY + surfaceZ * surfaceZ) || 1;
+                            const labelX = surfaceX + (surfaceX / norm) * 0.4;
+                            const labelY = surfaceY + (surfaceY / norm) * 0.4 + 0.15;
+                            const labelZ = surfaceZ + (surfaceZ / norm) * 0.4;
+
+                            const surfacePos: [number, number, number] = [surfaceX, surfaceY, surfaceZ];
+                            const labelPos: [number, number, number] = [labelX, labelY, labelZ];
+                            const label = element.name || element.pathology || 'Element';
+
+                            return (
+                                <group key={element.id}>
+                                    <Line points={[surfacePos, labelPos]} color="#ffffff" lineWidth={1} dashed dashSize={0.05} gapSize={0.03} />
+                                    <Html position={labelPos} center distanceFactor={5}>
+                                        <div className="bg-black/80 backdrop-blur-sm text-white text-[10px] px-2 py-1 rounded border border-white/30 whitespace-nowrap pointer-events-none shadow-lg">
+                                            {label}
+                                        </div>
+                                    </Html>
+                                </group>
+                            );
+                        })}
 
                         <OrbitControls
                             enablePan={false}
@@ -953,24 +1009,46 @@ export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, elements, de
                     {/* Popovers Container */}
                     <div className="flex flex-col items-center gap-4 w-full max-w-md pointer-events-auto transition-all duration-300">
 
-                        {/* OCT Slider Popover */}
+                        {/* Slice View Sliders Popover */}
                         {showOCT && (
                             <div className="w-full bg-black/60 backdrop-blur-md p-4 rounded-2xl border border-white/10 animate-in slide-in-from-bottom-4 fade-in">
-                                <div className="flex justify-between items-center mb-2">
+                                <div className="flex justify-between items-center mb-3">
                                     <span className="text-white text-xs font-bold flex items-center gap-2">
-                                        <ScanLine size={12} className="text-green-400" /> OCT Slice
+                                        <ScanLine size={12} className="text-green-400" /> Slice View
                                     </span>
-                                    <span className="text-white/50 text-[10px]">{octSliceX.toFixed(2)}</span>
                                 </div>
-                                <input
-                                    type="range"
-                                    min="-2"
-                                    max="2"
-                                    step="0.01"
-                                    value={octSliceX}
-                                    onChange={(e) => setOctSliceX(parseFloat(e.target.value))}
-                                    className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-green-500"
-                                />
+                                <div className="space-y-3">
+                                    <div>
+                                        <div className="flex justify-between text-[10px] text-white/60 mb-1">
+                                            <span>Left Slice</span>
+                                            <span>{sliceMin.toFixed(2)}</span>
+                                        </div>
+                                        <input
+                                            type="range"
+                                            min="-2"
+                                            max="2"
+                                            step="0.05"
+                                            value={sliceMin}
+                                            onChange={(e) => setSliceMin(Math.min(parseFloat(e.target.value), sliceMax - 0.1))}
+                                            className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-green-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <div className="flex justify-between text-[10px] text-white/60 mb-1">
+                                            <span>Right Slice</span>
+                                            <span>{sliceMax.toFixed(2)}</span>
+                                        </div>
+                                        <input
+                                            type="range"
+                                            min="-2"
+                                            max="2"
+                                            step="0.05"
+                                            value={sliceMax}
+                                            onChange={(e) => setSliceMax(Math.max(parseFloat(e.target.value), sliceMin + 0.1))}
+                                            className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-green-500"
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         )}
 
@@ -1012,9 +1090,17 @@ export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, elements, de
                         <button
                             onClick={() => setShowOCT(!showOCT)}
                             className={`p-3 rounded-full transition-all ${showOCT ? 'bg-green-500 text-white shadow-[0_0_15px_rgba(34,197,94,0.4)]' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}
-                            title="OCT Cross-Section"
+                            title="Slice View"
                         >
                             <ScanLine size={20} />
+                        </button>
+
+                        <button
+                            onClick={() => setShowAnnotations(!showAnnotations)}
+                            className={`p-3 rounded-full transition-all ${showAnnotations ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}
+                            title="Show Annotations"
+                        >
+                            <Tag size={20} />
                         </button>
 
                     </div>

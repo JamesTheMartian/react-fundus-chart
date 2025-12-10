@@ -33,6 +33,7 @@ interface ToolbarProps {
     vesselOpacity: number;
     setVesselOpacity: (opacity: number) => void;
     variant?: 'desktop' | 'mobile';
+    isProMode?: boolean;
 }
 
 // =================================================================
@@ -82,7 +83,8 @@ const DesktopToolbar: React.FC<ToolbarProps> = ({
     onAnalyze,
     onShowLegend,
     vesselOpacity,
-    setVesselOpacity
+    setVesselOpacity,
+    isProMode = false
 }) => {
     return (
         <div className="flex flex-col gap-5 p-4 w-full transition-all h-full">
@@ -196,8 +198,8 @@ const DesktopToolbar: React.FC<ToolbarProps> = ({
                 </div>
             </div>
 
-            {/* Detachment Height (Conditional) */}
-            {activePathology === 'detachment' && (
+            {/* Detachment Height (Pro Mode Only) */}
+            {isProMode && activePathology === 'detachment' && (
                 <div className="flex flex-col gap-3 bg-primary-50/50 dark:bg-primary-500/10 p-3 rounded-xl border border-primary-100/50 dark:border-primary-500/20">
                     <div className="flex justify-between items-center">
                         <h3 className="text-xs font-bold uppercase tracking-widest text-primary-500 dark:text-primary-400">Detachment Height</h3>
@@ -216,23 +218,25 @@ const DesktopToolbar: React.FC<ToolbarProps> = ({
                 </div>
             )}
 
-            {/* Vessel Map */}
-            <div className="flex flex-col gap-3">
-                <div className="flex justify-between items-center">
-                    <SectionHeader>Vessel Map</SectionHeader>
-                    <span className="text-xs font-bold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md">{Math.round(vesselOpacity * 100)}%</span>
+            {/* Vessel Map (Pro Mode Only) */}
+            {isProMode && (
+                <div className="flex flex-col gap-3">
+                    <div className="flex justify-between items-center">
+                        <SectionHeader>Vessel Map</SectionHeader>
+                        <span className="text-xs font-bold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md">{Math.round(vesselOpacity * 100)}%</span>
+                    </div>
+                    <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={vesselOpacity}
+                        onChange={(e) => setVesselOpacity(Number(e.target.value))}
+                        aria-label="Adjust Vessel Map Opacity"
+                        className="w-full"
+                    />
                 </div>
-                <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value={vesselOpacity}
-                    onChange={(e) => setVesselOpacity(Number(e.target.value))}
-                    aria-label="Adjust Vessel Map Opacity"
-                    className="w-full"
-                />
-            </div>
+            )}
 
             <div className="h-px bg-gray-100 dark:bg-gray-800 w-full"></div>
 
@@ -301,13 +305,15 @@ const DesktopToolbar: React.FC<ToolbarProps> = ({
                         <Box size={18} /> 3D View
                     </button>
                 </div>
-                <button
-                    onClick={onAnalyze}
-                    aria-label="Analyze Chart with AI"
-                    className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl bg-gradient-to-r from-primary-600 to-indigo-600 text-white text-sm font-bold shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
-                >
-                    <Sparkles size={18} /> Analyze Chart
-                </button>
+                {isProMode && (
+                    <button
+                        onClick={onAnalyze}
+                        aria-label="Analyze Chart with AI"
+                        className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl bg-gradient-to-r from-primary-600 to-indigo-600 text-white text-sm font-bold shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+                    >
+                        <Sparkles size={18} /> Analyze Chart
+                    </button>
+                )}
             </div>
 
             {/* Undo/Redo/Clear */}

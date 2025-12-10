@@ -62,6 +62,8 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
     const [currentElement, setCurrentElement] = useState<FundusElement | null>(null);
     const [hoveredElementId, setHoveredElementId] = useState<string | null>(null);
     const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStartPoint, setDragStartPoint] = useState<Point | null>(null);
     const vesselMapRef = useRef<HTMLImageElement | null>(null);
 
     useEffect(() => {
@@ -205,6 +207,23 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         ctx.restore();
     };
 
+    // Helper to check if a point is inside the optic disc region
+    const isPointInOpticDisc = (point: Point): boolean => {
+        const center = { x: width / 2, y: height / 2 };
+        const radius = Math.min(width, height) / 2 - 20;
+
+        const discAngle = eyeSide === 'OD' ? 0 : Math.PI;
+        const discDist = radius * 0.3;
+
+        const discX = center.x - (eyeSide === 'OD' ? 15 : -15) + Math.cos(discAngle) * discDist;
+        const discY = center.y - 10 + Math.sin(discAngle) * discDist;
+        const discRadius = 15; // Same as in drawBackground
+
+        const dx = point.x - discX;
+        const dy = point.y - discY;
+        return (dx * dx + dy * dy) <= (discRadius * discRadius);
+    };
+
     const isPointInElement = (point: Point, element: FundusElement): boolean => {
         if (element.type === 'stroke') {
             if (!element.points) return false;
@@ -271,9 +290,13 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         }
 
         if (element.type === 'stroke') {
-            if (element.toolType === 'brush') {
-                ctx.globalAlpha = element.layer === 'vitreous' ? 0.3 : 0.5;
-                ctx.lineWidth = width * 2;
+            // Brush strokes handled with buffer approach to prevent self-overlap darkening
+            // The caller (render loop) handles this by drawing brush strokes on a separate buffer
+            const isBrush = element.toolType === 'brush';
+            if (isBrush) {
+                // For brush: draw at full opacity here, alpha is applied when compositing the buffer
+                ctx.globalAlpha = 1.0;
+                ctx.lineWidth = (width || 2) * 2;
             }
 
             if (element.points) {
@@ -547,13 +570,47 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         const layerCtx = layerCanvas.getContext('2d');
 
         if (layerCtx) {
-            elements.forEach(s => {
+            // Separate brush strokes from other elements for buffer-based rendering
+            const brushElements = elements.filter(s => s.toolType === 'brush');
+            const otherElements = elements.filter(s => s.toolType !== 'brush');
+
+            // Draw non-brush elements directly
+            otherElements.forEach(s => {
                 drawElement(layerCtx, s, shouldRotateContext);
             });
+
+            // Draw brush elements on a separate buffer, then composite with alpha
+            if (brushElements.length > 0) {
+                const brushBuffer = document.createElement('canvas');
+                brushBuffer.width = width;
+                brushBuffer.height = height;
+                const brushCtx = brushBuffer.getContext('2d');
+                if (brushCtx) {
+                    brushElements.forEach(s => {
+                        drawElement(brushCtx, s, shouldRotateContext);
+                    });
+                    // Composite brush buffer with 0.5 opacity (or vitreous 0.3)
+                    layerCtx.globalAlpha = 0.5;
+                    layerCtx.drawImage(brushBuffer, 0, 0);
+                    layerCtx.globalAlpha = 1.0;
+                }
+            }
+
+            // Draw current element
             if (currentElement) {
-                // Current element visibility check
-                const isVitreous = currentElement.layer === 'vitreous';
-                if ((isVitreous) || (!isVitreous)) {
+                if (currentElement.toolType === 'brush') {
+                    // Draw current brush stroke on its own buffer
+                    const currentBrushBuffer = document.createElement('canvas');
+                    currentBrushBuffer.width = width;
+                    currentBrushBuffer.height = height;
+                    const currentBrushCtx = currentBrushBuffer.getContext('2d');
+                    if (currentBrushCtx) {
+                        drawElement(currentBrushCtx, currentElement, shouldRotateContext);
+                        layerCtx.globalAlpha = currentElement.layer === 'vitreous' ? 0.3 : 0.5;
+                        layerCtx.drawImage(currentBrushBuffer, 0, 0);
+                        layerCtx.globalAlpha = 1.0;
+                    }
+                } else {
                     drawElement(layerCtx, currentElement, shouldRotateContext);
                 }
             }
@@ -610,7 +667,14 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             // Find clicked element (reverse order for top-most)
             const clickedElement = [...elements].reverse().find(el => isPointInElement(point, el));
             if (clickedElement) {
-                setSelectedElementId(clickedElement.id);
+                if (clickedElement.id === selectedElementId) {
+                    // Start dragging the already-selected element
+                    setIsDragging(true);
+                    setDragStartPoint(point);
+                } else {
+                    // Select new element
+                    setSelectedElementId(clickedElement.id);
+                }
             } else {
                 setSelectedElementId(null);
             }
@@ -686,12 +750,41 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         const point = getCanvasPoint(e);
 
         if (activeTool === 'select') {
-            const hovered = [...elements].reverse().find(el => isPointInElement(point, el));
-            setHoveredElementId(hovered ? hovered.id : null);
+            // Handle dragging selected element
+            if (isDragging && selectedElementId && dragStartPoint) {
+                const dx = point.x - dragStartPoint.x;
+                const dy = point.y - dragStartPoint.y;
+
+                setElements(prev => prev.map(el => {
+                    if (el.id !== selectedElementId) return el;
+
+                    if (el.type === 'stroke' && el.points) {
+                        // Translate all points in the stroke
+                        return {
+                            ...el,
+                            points: el.points.map(p => p ? { x: p.x + dx, y: p.y + dy } : null)
+                        };
+                    } else if ((el.type === 'hemorrhage' || el.type === 'spot') && el.position) {
+                        // Move shape position
+                        return {
+                            ...el,
+                            position: { x: el.position.x + dx, y: el.position.y + dy }
+                        };
+                    }
+                    return el;
+                }));
+                setDragStartPoint(point);
+            } else {
+                const hovered = [...elements].reverse().find(el => isPointInElement(point, el));
+                setHoveredElementId(hovered ? hovered.id : null);
+            }
             return;
         }
 
         if (!currentElement) return;
+
+        // Prevent drawing inside optic disc
+        if (isPointInOpticDisc(point)) return;
 
         setCurrentElement(prev => prev && prev.points ? {
             ...prev,
@@ -701,6 +794,13 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
 
     const handleEnd = () => {
         if (disabled) return;
+
+        // Reset dragging state
+        if (isDragging) {
+            setIsDragging(false);
+            setDragStartPoint(null);
+        }
+
         if (currentElement) {
             setElements(prev => [...prev, currentElement]);
             setCurrentElement(null);

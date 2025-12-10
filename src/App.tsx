@@ -40,6 +40,7 @@ function AppContent() {
   const [showFeedbackPrompt, setShowFeedbackPrompt] = useState(false);
   const [showConfirmClear, setShowConfirmClear] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [isProMode, setIsProMode] = useState(false);
 
   const canvasRef = useRef<FundusCanvasRef>(null);
   const { showToast } = useToast();
@@ -85,6 +86,11 @@ function AppContent() {
   };
 
   const handle3DView = () => {
+    // Toggle 3D view
+    if (show3D) {
+      setShow3D(false);
+      return;
+    }
     if (canvasRef.current) {
       const url = canvasRef.current.getDataURL();
       if (url) {
@@ -191,7 +197,19 @@ function AppContent() {
         <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
           <div className="flex flex-col gap-0.5">
             <h1 className="text-lg font-bold text-gray-900 dark:text-gray-50 tracking-tight">Retinal Charting</h1>
-            <p className="text-xs font-medium text-primary-600 dark:text-primary-400 uppercase tracking-widest">Pro Studio</p>
+            <p className="text-xs font-medium text-primary-600 dark:text-primary-400 uppercase tracking-widest flex items-center gap-1">
+              Studio
+              <button
+                onClick={() => setIsProMode(!isProMode)}
+                className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold transition-all ${isProMode
+                  ? 'bg-primary-600 text-white shadow-sm'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                title={isProMode ? 'Disable Pro features' : 'Enable Pro features'}
+              >
+                Pro
+              </button>
+            </p>
           </div>
           <div className="flex items-center gap-1">
             {/* Keyboard Shortcuts Button */}
@@ -240,13 +258,14 @@ function AppContent() {
           vesselOpacity={vesselOpacity}
           setVesselOpacity={setVesselOpacity}
           variant="desktop"
+          isProMode={isProMode}
         />
       </aside>
 
       {/* Center - Canvas Area */}
       <main
         id="main-canvas"
-        className="flex-1 relative bg-gray-100 dark:bg-gray-950 overflow-hidden flex items-center justify-center p-4 lg:p-8 transition-colors"
+        className="flex-1 relative bg-gray-100 dark:bg-gray-950 overflow-hidden flex items-center justify-center p-2 sm:p-4 lg:p-8 transition-colors"
       >
         {/* Canvas Container */}
         <div className="relative shadow-2xl shadow-black/10 dark:shadow-black/30 rounded-full lg:rounded-2xl overflow-hidden bg-white dark:bg-gray-900 ring-1 ring-black/5 dark:ring-white/5">
@@ -286,18 +305,20 @@ function AppContent() {
         </div>
       </main>
 
-      {/* Right Sidebar - Layers */}
-      <aside className="hidden lg:flex flex-col w-72 h-full bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 z-10 shrink-0 shadow-sm transition-colors">
-        <LayerPanel
-          elements={currentElements}
-          selectedElementId={selectedElementId}
-          onSelect={(id) => {
-            setSelectedElementId(id);
-          }}
-          onUpdate={handleElementUpdate}
-          onDelete={handleElementDelete}
-        />
-      </aside>
+      {/* Right Sidebar - Layers (Pro Mode Only) */}
+      {isProMode && (
+        <aside className="hidden lg:flex flex-col w-72 h-full bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 z-10 shrink-0 shadow-sm transition-colors">
+          <LayerPanel
+            elements={currentElements}
+            selectedElementId={selectedElementId}
+            onSelect={(id) => {
+              setSelectedElementId(id);
+            }}
+            onUpdate={handleElementUpdate}
+            onDelete={handleElementDelete}
+          />
+        </aside>
+      )}
 
       {/* Mobile Toolbar (Floating) */}
       <div className="lg:hidden absolute bottom-6 left-4 right-4 z-30 pointer-events-none flex flex-col items-center gap-3">
@@ -326,6 +347,7 @@ function AppContent() {
           vesselOpacity={vesselOpacity}
           setVesselOpacity={setVesselOpacity}
           variant="mobile"
+          isProMode={isProMode}
         />
       </div>
 

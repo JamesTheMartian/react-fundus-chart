@@ -87,14 +87,14 @@ export const useKeyboardShortcuts = ({
         const modKey = isMac ? e.metaKey : e.ctrlKey;
 
         // Undo: Cmd/Ctrl + Z
-        if (modKey && !e.shiftKey && e.key === 'z') {
+        if (modKey && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
             e.preventDefault();
             onUndo();
             return;
         }
 
         // Redo: Cmd/Ctrl + Shift + Z
-        if (modKey && e.shiftKey && e.key === 'z') {
+        if (modKey && e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
             e.preventDefault();
             onRedo();
             return;
@@ -130,7 +130,8 @@ export const useKeyboardShortcuts = ({
                     e.preventDefault();
                     setActiveTool('brush');
                     break;
-                case '`':
+                case 'v':
+                case 'V':
                     e.preventDefault();
                     on3DView();
                     break;
