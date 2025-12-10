@@ -108,8 +108,6 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             ctx.beginPath();
             ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
             ctx.clip();
-            // Draw image covering the circle
-            ctx.drawImage(vesselMapRef.current, center.x - radius, center.y - radius, radius * 2, radius * 2);
             // If eyeSide is OS, invert the image
             if (eyeSide === 'OD') {
                 ctx.drawImage(vesselMapRef.current, center.x - radius, center.y - radius, radius * 2, radius * 2);
