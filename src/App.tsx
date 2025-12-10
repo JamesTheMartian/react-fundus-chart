@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Sun, Moon, Keyboard } from 'lucide-react';
+
 import { FundusCanvas } from './components/FundusCanvas';
 import type { FundusCanvasRef } from './components/FundusCanvas';
 import { Toolbar } from './components/Toolbar';
@@ -8,11 +10,19 @@ import { AIAnalysisModal } from './components/AIAnalysisModal';
 import { ColorLegendModal } from './components/ColorLegendModal';
 import { LayerPanel } from './components/LayerPanel';
 import { FeedbackPrompt } from './components/FeedbackPrompt';
+import { ToastProvider, useToast } from './components/Toast';
+import { ConfirmDialog } from './components/ConfirmDialog';
+import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
+import { useDarkMode } from './hooks/useDarkMode';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+
 import type { ColorCode, ToolType, EyeSide, PathologyType, FundusElement } from './utils/types';
 import { PATHOLOGY_PRESETS } from './utils/types';
-// import './App.css'; // Removed for Tailwind migration
 
-function App() {
+// =================================================================
+// Main App Content (needs Toast context)
+// =================================================================
+function AppContent() {
   const [activeColor, setActiveColor] = useState<ColorCode>('red');
   const [activeTool, setActiveTool] = useState<ToolType>('pen');
   const [brushSize, setBrushSize] = useState<number>(2);
@@ -28,17 +38,21 @@ function App() {
   const [currentElements, setCurrentElements] = useState<FundusElement[]>([]);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [showFeedbackPrompt, setShowFeedbackPrompt] = useState(false);
+  const [showConfirmClear, setShowConfirmClear] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   const canvasRef = useRef<FundusCanvasRef>(null);
+  const { showToast } = useToast();
+  const { isDark, toggleDarkMode } = useDarkMode();
 
   const handleDownload = () => {
     if (canvasRef.current) {
       canvasRef.current.exportImage();
+      showToast('Image downloaded successfully!', 'success');
 
       // Check if user has opted out of feedback
       const hasOptedOut = localStorage.getItem('feedback_opt_out');
       if (!hasOptedOut) {
-        // Show feedback prompt after a short delay to allow download to start
         setTimeout(() => {
           setShowFeedbackPrompt(true);
         }, 1500);
@@ -59,11 +73,15 @@ function App() {
   };
 
   const handleClear = () => {
-    if (confirm('Clear all drawings?')) {
-      if (canvasRef.current) {
-        canvasRef.current.clear();
-      }
+    setShowConfirmClear(true);
+  };
+
+  const confirmClear = () => {
+    if (canvasRef.current) {
+      canvasRef.current.clear();
+      showToast('Canvas cleared', 'info');
     }
+    setShowConfirmClear(false);
   };
 
   const handle3DView = () => {
@@ -71,12 +89,12 @@ function App() {
       const url = canvasRef.current.getDataURL();
       if (url) {
         setTextureUrl(url);
-        setTextureUrl(url);
         setCurrentElements(canvasRef.current.getStrokes());
         setShow3D(true);
       }
     }
   };
+
   const handleAnalyze = () => {
     if (canvasRef.current) {
       const url = canvasRef.current.getDataURL();
@@ -97,13 +115,6 @@ function App() {
     }
   };
 
-  // For "Retina" elements (hemorrhage), they should be on the texture.
-  // We can trigger a texture update by re-calling getDataURL, but that's expensive.
-  // For now, let's assume 3D view handles "Vitreous" as separate meshes.
-  // Retinal elements might need a texture refresh or be rendered as decals (future work).
-  // Let's just update the elements list for now.
-
-
   const handleElementUpdate = (id: string, updates: Partial<FundusElement>) => {
     if (canvasRef.current) {
       canvasRef.current.updateElement(id, updates);
@@ -116,29 +127,89 @@ function App() {
     }
   };
 
+  const handleDeleteSelected = () => {
+    if (selectedElementId) {
+      handleElementDelete(selectedElementId);
+      setSelectedElementId(null);
+    }
+  };
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onUndo: handleUndo,
+    onRedo: handleRedo,
+    onClear: handleClear,
+    onDownload: handleDownload,
+    on3DView: handle3DView,
+    onDelete: handleDeleteSelected,
+    onDeselect: () => setSelectedElementId(null),
+    onShowShortcuts: () => setShowShortcuts(true),
+    onToggleDarkMode: toggleDarkMode,
+    setActiveTool,
+    disabled: show3D || showAI || showLegend || showConfirmClear || showShortcuts,
+  });
+
   return (
-    <div className="h-screen w-screen overflow-hidden bg-gray-100 flex flex-col lg:flex-row font-sans text-gray-900">
-      {/* Header for Mobile / Tablet - Minimal */}
-      <header className="lg:hidden h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 shrink-0 z-20">
-        <h1 className="text-sm font-semibold text-gray-900">Retinal Fundus Charting</h1>
+    <div className="h-screen w-screen overflow-hidden bg-gray-100 dark:bg-gray-950 flex flex-col lg:flex-row font-sans text-gray-900 dark:text-gray-50 transition-colors duration-200">
+      {/* Skip to Content Link */}
+      <a href="#main-canvas" className="skip-to-content">
+        Skip to canvas
+      </a>
+
+      {/* Header for Mobile / Tablet */}
+      <header className="lg:hidden h-14 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 shrink-0 z-20 transition-colors">
+        <h1 className="text-sm font-semibold text-gray-900 dark:text-gray-50">Retinal Fundus Charting</h1>
         <div className="flex items-center gap-2">
+          {/* Dark Mode Toggle */}
+          <button
+            onClick={toggleDarkMode}
+            className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {isDark ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
           <button
             onClick={handle3DView}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-semibold border border-blue-100 active:scale-95 transition-transform"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 rounded-lg text-xs font-semibold border border-primary-100 dark:border-primary-500/30 active:scale-95 transition-transform"
           >
             3D View
           </button>
-          <button onClick={() => setIsInverted(!isInverted)} className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded active:scale-95 transition-transform">
+          <button
+            onClick={() => setIsInverted(!isInverted)}
+            className="text-xs font-medium text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-500/20 px-2 py-1 rounded active:scale-95 transition-transform"
+          >
             {isInverted ? 'Inverted' : 'Standard'}
           </button>
         </div>
       </header>
 
       {/* Left Sidebar - Toolbar */}
-      <aside className="hidden lg:flex flex-col w-80 h-full bg-white border-r border-gray-200 z-10 shrink-0 overflow-y-auto shadow-sm">
-        <div className="p-5 border-b border-gray-100 flex flex-col gap-0.5">
-          <h1 className="text-lg font-bold text-gray-900 tracking-tight">Retinal Charting</h1>
-          <p className="text-xs font-medium text-blue-600 uppercase tracking-widest">Pro Studio</p>
+      <aside className="hidden lg:flex flex-col w-80 h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 z-10 shrink-0 overflow-y-auto shadow-sm transition-colors">
+        <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+          <div className="flex flex-col gap-0.5">
+            <h1 className="text-lg font-bold text-gray-900 dark:text-gray-50 tracking-tight">Retinal Charting</h1>
+            <p className="text-xs font-medium text-primary-600 dark:text-primary-400 uppercase tracking-widest">Pro Studio</p>
+          </div>
+          <div className="flex items-center gap-1">
+            {/* Keyboard Shortcuts Button */}
+            <button
+              onClick={() => setShowShortcuts(true)}
+              className="p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              aria-label="Keyboard shortcuts"
+              title="Keyboard shortcuts (?)"
+            >
+              <Keyboard size={18} />
+            </button>
+            {/* Dark Mode Toggle */}
+            <button
+              onClick={toggleDarkMode}
+              className="p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={isDark ? 'Light mode (D)' : 'Dark mode (D)'}
+            >
+              {isDark ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+          </div>
         </div>
         <Toolbar
           activeColor={activeColor}
@@ -169,9 +240,12 @@ function App() {
       </aside>
 
       {/* Center - Canvas Area */}
-      <main className="flex-1 relative bg-gray-100 overflow-hidden flex items-center justify-center p-4 lg:p-8">
+      <main
+        id="main-canvas"
+        className="flex-1 relative bg-gray-100 dark:bg-gray-950 overflow-hidden flex items-center justify-center p-4 lg:p-8 transition-colors"
+      >
         {/* Canvas Container */}
-        <div className="relative shadow-2xl shadow-black/10 rounded-full lg:rounded-2xl overflow-hidden bg-white ring-1 ring-black/5">
+        <div className="relative shadow-2xl shadow-black/10 dark:shadow-black/30 rounded-full lg:rounded-2xl overflow-hidden bg-white dark:bg-gray-900 ring-1 ring-black/5 dark:ring-white/5">
           <motion.div
             initial={false}
             animate={{ rotate: isInverted ? 180 : 0 }}
@@ -200,24 +274,21 @@ function App() {
           </motion.div>
         </div>
 
-        {/* Floating Action Bar for Canvas (Zoom/Pan controls could go here) */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur shadow-lg border border-gray-200 rounded-full px-4 py-2 flex gap-4 text-xs font-medium text-gray-600 lg:flex hidden">
+        {/* Floating Action Bar for Canvas */}
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 glass shadow-lg rounded-full px-4 py-2 flex gap-4 text-xs font-medium text-gray-600 dark:text-gray-400 lg:flex hidden">
           <span>{eyeSide}</span>
-          <span className="w-px h-4 bg-gray-300"></span>
+          <span className="w-px h-4 bg-gray-300 dark:bg-gray-600"></span>
           <span>{isInverted ? 'Inverted' : 'Standard'}</span>
         </div>
       </main>
 
       {/* Right Sidebar - Layers */}
-      <aside className="hidden lg:flex flex-col w-72 h-full bg-white border-l border-gray-200 z-10 shrink-0 shadow-sm">
+      <aside className="hidden lg:flex flex-col w-72 h-full bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 z-10 shrink-0 shadow-sm transition-colors">
         <LayerPanel
           elements={currentElements}
           selectedElementId={selectedElementId}
           onSelect={(id) => {
             setSelectedElementId(id);
-            if (canvasRef.current && id) {
-              // Selection logic handled via state
-            }
           }}
           onUpdate={handleElementUpdate}
           onDelete={handleElementDelete}
@@ -226,7 +297,6 @@ function App() {
 
       {/* Mobile Toolbar (Floating) */}
       <div className="lg:hidden absolute bottom-6 left-4 right-4 z-30 pointer-events-none flex flex-col items-center gap-3">
-        {/* Toolbar Component itself will handle pointer-events-auto for its children */}
         <Toolbar
           activeColor={activeColor}
           setActiveColor={setActiveColor}
@@ -255,11 +325,23 @@ function App() {
         />
       </div>
 
-      {show3D && <ThreeDView textureUrl={textureUrl} elements={currentElements} detachmentHeight={detachmentHeight} onClose={() => setShow3D(false)} eyeSide={eyeSide} />}
+      {/* Modals */}
+      {show3D && (
+        <ThreeDView
+          textureUrl={textureUrl}
+          elements={currentElements}
+          detachmentHeight={detachmentHeight}
+          onClose={() => setShow3D(false)}
+          eyeSide={eyeSide}
+        />
+      )}
+
       <AnimatePresence>
         {showAI && <AIAnalysisModal imageData={textureUrl} onClose={() => setShowAI(false)} />}
       </AnimatePresence>
+
       <ColorLegendModal isOpen={showLegend} onClose={() => setShowLegend(false)} />
+
       <FeedbackPrompt
         isOpen={showFeedbackPrompt}
         onClose={() => setShowFeedbackPrompt(false)}
@@ -272,7 +354,36 @@ function App() {
           setShowFeedbackPrompt(false);
         }}
       />
+
+      {/* Confirm Clear Dialog */}
+      <ConfirmDialog
+        isOpen={showConfirmClear}
+        onClose={() => setShowConfirmClear(false)}
+        onConfirm={confirmClear}
+        title="Clear Canvas"
+        message="Are you sure you want to clear all drawings? This action cannot be undone."
+        confirmText="Clear All"
+        cancelText="Cancel"
+        variant="danger"
+      />
+
+      {/* Keyboard Shortcuts Modal */}
+      <KeyboardShortcutsModal
+        isOpen={showShortcuts}
+        onClose={() => setShowShortcuts(false)}
+      />
     </div>
+  );
+}
+
+// =================================================================
+// App Wrapper with Toast Provider
+// =================================================================
+function App() {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
   );
 }
 

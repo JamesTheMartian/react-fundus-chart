@@ -1,11 +1,96 @@
 @import "tailwindcss";
 
-html {
-  scroll-behavior: smooth;
+/* =================================================================
+   Theme Configuration (Tailwind v4)
+   ================================================================= */
+@theme {
+  /* Primary brand colors */
+  --color-primary-50: #eef2ff;
+  --color-primary-100: #e0e7ff;
+  --color-primary-200: #c7d2fe;
+  --color-primary-300: #a5b4fc;
+  --color-primary-400: #818cf8;
+  --color-primary-500: #6366f1;
+  --color-primary-600: #4f46e5;
+  --color-primary-700: #4338ca;
+  --color-primary-800: #3730a3;
+  --color-primary-900: #312e81;
+
+  /* Success colors */
+  --color-success-50: #ecfdf5;
+  --color-success-100: #d1fae5;
+  --color-success-500: #10b981;
+  --color-success-600: #059669;
+  --color-success-700: #047857;
+
+  /* Warning colors */
+  --color-warning-50: #fffbeb;
+  --color-warning-100: #fef3c7;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #d97706;
+  --color-warning-700: #b45309;
+
+  /* Danger colors */
+  --color-danger-50: #fef2f2;
+  --color-danger-100: #fee2e2;
+  --color-danger-500: #ef4444;
+  --color-danger-600: #dc2626;
+  --color-danger-700: #b91c1c;
+
+  /* Animations */
+  --animate-spin-slow: spin 2s linear infinite;
+  --animate-pulse-subtle: pulse 3s ease-in-out infinite;
+  --animate-slide-up: slideUp 0.3s ease-out;
+  --animate-slide-down: slideDown 0.3s ease-out;
+  --animate-fade-in: fadeIn 0.2s ease-out;
 }
 
+/* =================================================================
+   Keyframes
+   ================================================================= */
+@keyframes slideUp {
+  0% {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  0% {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+/* =================================================================
+   Base Styles
+   ================================================================= */
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -13,4 +98,226 @@ body {
   min-width: 320px;
   min-height: 100vh;
   @apply bg-gray-50 text-gray-900;
+}
+
+.dark body,
+body.dark {
+  @apply bg-gray-950 text-gray-50;
+}
+
+/* Global dark mode application */
+.dark {
+  color-scheme: dark;
+}
+
+/* =================================================================
+   Skip to Content Link (Accessibility)
+   ================================================================= */
+.skip-to-content {
+  position: absolute;
+  top: -2.5rem;
+  left: 1rem;
+  z-index: 50;
+  padding: 0.5rem 1rem;
+  background-color: var(--color-primary-600);
+  color: white;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: top 0.2s ease;
+}
+
+.skip-to-content:focus {
+  top: 1rem;
+}
+
+/* =================================================================
+   Focus Visible States
+   ================================================================= */
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-primary-500);
+}
+
+.dark *:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-primary-400);
+}
+
+/* Disable default focus for mouse users */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* =================================================================
+   Custom Range Slider Styling
+   ================================================================= */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  width: 100%;
+  height: 8px;
+}
+
+input[type="range"]::-webkit-slider-track {
+  background: #e5e7eb;
+  border-radius: 9999px;
+  height: 8px;
+}
+
+.dark input[type="range"]::-webkit-slider-track {
+  background: #374151;
+}
+
+input[type="range"]::-moz-range-track {
+  background: #e5e7eb;
+  border-radius: 9999px;
+  height: 8px;
+}
+
+.dark input[type="range"]::-moz-range-track {
+  background: #374151;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--color-primary-600);
+  border-radius: 9999px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  margin-top: -6px;
+  transition: all 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: var(--color-primary-700);
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+  transform: scale(0.95);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--color-primary-600);
+  border-radius: 9999px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  border: 0;
+  transition: all 0.15s ease;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  background: var(--color-primary-700);
+}
+
+input[type="range"]::-moz-range-thumb:active {
+  transform: scale(0.95);
+}
+
+/* =================================================================
+   Reduced Motion Support
+   ================================================================= */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* =================================================================
+   Custom Scrollbar (Subtle)
+   ================================================================= */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Hide scrollbar for mobile tool scroll */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* =================================================================
+   Glass morphism utilities
+   ================================================================= */
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dark .glass {
+  background: rgba(17, 24, 39, 0.8);
+  border: 1px solid rgba(55, 65, 81, 0.5);
+}
+
+.glass-subtle {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.dark .glass-subtle {
+  background: rgba(17, 24, 39, 0.6);
+}
+
+/* =================================================================
+   Loading skeleton animation
+   ================================================================= */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #e5e7eb 0%, #f3f4f6 50%, #e5e7eb 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.dark .skeleton {
+  background: linear-gradient(90deg, #1f2937 0%, #374151 50%, #1f2937 100%);
+  background-size: 200% 100%;
 }
