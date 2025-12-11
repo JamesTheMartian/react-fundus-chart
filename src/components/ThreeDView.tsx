@@ -9,6 +9,7 @@ import { Sun, Eye, FileText, Flashlight, Cloud, ScanLine, X, Tag } from 'lucide-
 import { useFrame } from '@react-three/fiber';
 
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { VitreousHemorrhageCloud, VitreousHemorrhageSpot } from './VitreousHemorrhageShader';
 
 
 
@@ -710,55 +711,34 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
 
             return segments.map((segment, index) => {
                 if (e.type === 'stroke' && segment.length > 1) {
-
-                    // Cloud-like rendering with overlapping spheres
-                    const sphereSize = (e.width || 15) * 0.008;
+                    // Use new volumetric cloud shader component
                     return (
-                        <group key={`${e.id}-${index}`}>
-                            {segment.map((pt, ptIdx) => {
-                                const pos = map2DTo3D(pt, e.zDepth || 0.5);
-                                // Vary size for organic look
-                                const sizeFactor = 0.7 + Math.sin(ptIdx * 1.5) * 0.3;
-                                return (
-                                    <mesh key={ptIdx} position={pos}>
-                                        <sphereGeometry args={[sphereSize * sizeFactor, 12, 12]} />
-                                        <meshPhysicalMaterial
-                                            color="#990000"
-                                            transparent
-                                            opacity={0.35}
-                                            roughness={1}
-                                            metalness={0}
-                                            side={THREE.DoubleSide}
-                                            clippingPlanes={clippingPlanes}
-                                            clipShadows
-                                            depthWrite={false}
-                                        />
-                                    </mesh>
-                                );
-                            })}
-                        </group>
+                        <VitreousHemorrhageCloud
+                            key={`${e.id}-${index}`}
+                            points={segment}
+                            width={e.width || 15}
+                            zDepth={e.zDepth || 0.5}
+                            map2DTo3D={map2DTo3D}
+                            clippingPlanes={clippingPlanes}
+                            elementId={`${e.id}-${index}`}
+                        />
                     );
                 } else {
+                    // Use shader-based spot for individual hemorrhage spots
                     const p = e.position || (segment.length > 0 && segment[0]) || { x: 0, y: 0 };
                     const pos = map2DTo3D(p, e.zDepth || 0.5);
                     return (
-                        <mesh key={`${e.id}-${index}`} position={pos}>
-                            <sphereGeometry args={[0.15, 16, 16]} />
-                            <meshPhysicalMaterial
-                                color="#880000"
-                                transparent
-                                opacity={0.65}
-                                roughness={0.6}
-                                clearcoat={0.2}
-                                clippingPlanes={clippingPlanes}
-                                clipShadows
-                            />
-                        </mesh>
+                        <VitreousHemorrhageSpot
+                            key={`${e.id}-${index}`}
+                            position={pos}
+                            radius={0.15}
+                            clippingPlanes={clippingPlanes}
+                        />
                     );
                 }
             });
         });
-    }, [elements, clippingPlanes]);
+    }, [elements, clippingPlanes, map2DTo3D]);
 
     return (
         <group>
