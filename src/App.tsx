@@ -25,8 +25,8 @@ import { PATHOLOGY_PRESETS } from './utils/types';
 function AppContent() {
   const [activeColor, setActiveColor] = useState<ColorCode>('red');
   const [activeTool, setActiveTool] = useState<ToolType>('pen');
-  const [brushSize, setBrushSize] = useState<number>(2);
-  const [activePathology, setActivePathology] = useState<PathologyType>('normal');
+  const [brushSize, setBrushSize] = useState<number>(5);
+  const [activePathology, setActivePathology] = useState<PathologyType>('hemorrhage');
   const [detachmentHeight, setDetachmentHeight] = useState<number>(0.3);
   const [vesselOpacity, setVesselOpacity] = useState<number>(0);
   const [isInverted, setIsInverted] = useState(false);

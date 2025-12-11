@@ -2,16 +2,16 @@ import { useEffect, useCallback, useRef } from 'react';
 import type { ToolType } from '../utils/types';
 
 interface UseKeyboardShortcutsOptions {
-    onUndo: () => void;
-    onRedo: () => void;
-    onClear: () => void;
-    onDownload: () => void;
-    on3DView: () => void;
-    onDelete: () => void;
-    onDeselect: () => void;
-    onShowShortcuts: () => void;
-    onToggleDarkMode: () => void;
-    setActiveTool: (tool: ToolType) => void;
+    onUndo?: () => void;
+    onRedo?: () => void;
+    onClear?: () => void;
+    onDownload?: () => void;
+    on3DView?: () => void;
+    onDelete?: () => void;
+    onDeselect?: () => void;
+    onShowShortcuts?: () => void;
+    onToggleDarkMode?: () => void;
+    setActiveTool?: (tool: ToolType) => void;
     disabled?: boolean;
 }
 
@@ -89,28 +89,28 @@ export const useKeyboardShortcuts = ({
         // Undo: Cmd/Ctrl + Z
         if (modKey && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
             e.preventDefault();
-            onUndo();
+            onUndo?.();
             return;
         }
 
         // Redo: Cmd/Ctrl + Shift + Z
         if (modKey && e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
             e.preventDefault();
-            onRedo();
+            onRedo?.();
             return;
         }
 
         // Download: Cmd/Ctrl + S
         if (modKey && e.key === 's') {
             e.preventDefault();
-            onDownload();
+            onDownload?.();
             return;
         }
 
         // Clear: Cmd/Ctrl + Backspace
         if (modKey && e.key === 'Backspace') {
             e.preventDefault();
-            onClear();
+            onClear?.();
             return;
         }
 
@@ -120,32 +120,32 @@ export const useKeyboardShortcuts = ({
                 // Tool shortcuts
                 case '1':
                     e.preventDefault();
-                    setActiveTool('select');
+                    setActiveTool?.('select');
                     break;
                 case '2':
                     e.preventDefault();
-                    setActiveTool('pen');
+                    setActiveTool?.('pen');
                     break;
                 case '3':
                     e.preventDefault();
-                    setActiveTool('brush');
+                    setActiveTool?.('brush');
                     break;
                 case 'v':
                 case 'V':
                     e.preventDefault();
-                    on3DView();
+                    on3DView?.();
                     break;
                 case '4':
                     e.preventDefault();
-                    setActiveTool('pattern');
+                    setActiveTool?.('pattern');
                     break;
                 case '5':
                     e.preventDefault();
-                    setActiveTool('fill');
+                    setActiveTool?.('fill');
                     break;
                 case '6':
                     e.preventDefault();
-                    setActiveTool('eraser');
+                    setActiveTool?.('eraser');
                     break;
 
                 // Actions
@@ -153,24 +153,24 @@ export const useKeyboardShortcuts = ({
                 case 'Backspace':
                     if (!modKey) {
                         e.preventDefault();
-                        onDelete();
+                        onDelete?.();
                     }
                     break;
 
                 case 'Escape':
                     e.preventDefault();
-                    onDeselect();
+                    onDeselect?.();
                     break;
 
                 case '?':
                     e.preventDefault();
-                    onShowShortcuts();
+                    onShowShortcuts?.();
                     break;
 
                 case 'd':
                 case 'D':
                     e.preventDefault();
-                    onToggleDarkMode();
+                    onToggleDarkMode?.();
                     break;
             }
         }
@@ -183,3 +183,4 @@ export const useKeyboardShortcuts = ({
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, [disabled, handleKeyDown]);
 };
+

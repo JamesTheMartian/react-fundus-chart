@@ -8,6 +8,10 @@ import type { FundusElement, EyeSide, Point } from '../utils/types';
 import { Sun, Eye, FileText, Flashlight, Cloud, ScanLine, X, Tag } from 'lucide-react';
 import { useFrame } from '@react-three/fiber';
 
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+
+
+
 interface LightControlProps {
     rotation: number;
     onChange: (rotation: number) => void;
@@ -196,7 +200,7 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
         if (!ctx) return null;
 
         // 1. Fill Background with Red (Retina Color)
-        ctx.fillStyle = '#c04040'; // Deep red/orange
+        ctx.fillStyle = '#f4acacff'; // Light red/pink
         ctx.fillRect(0, 0, 1024, 1024);
 
         // 2. Draw Elements
@@ -822,6 +826,10 @@ interface ThreeDViewProps {
 }
 
 export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, elements, detachmentHeight, onClose, eyeSide }) => {
+    useKeyboardShortcuts({
+        on3DView: onClose,
+    });
+
     const [lightRotation, setLightRotation] = React.useState(45);
     const [viewMode, setViewMode] = React.useState<'chart' | 'retina'>('chart');
     const [isOphthalmoscopeMode, setIsOphthalmoscopeMode] = React.useState(false);

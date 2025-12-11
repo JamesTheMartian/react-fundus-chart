@@ -78,7 +78,7 @@ export interface PathologyPreset {
 }
 
 export const PATHOLOGY_PRESETS: Record<PathologyType, PathologyPreset> = {
-  hemorrhage: { label: 'Hemorrhage', color: 'red', tool: 'brush', width: 15 },
+  hemorrhage: { label: 'Hemorrhage', color: 'red', tool: 'pen', width: 5 },
   vitreous_hemorrhage: { label: 'Vitreous Hemorrhage', color: 'green', tool: 'brush', width: 30 },
   tear: { label: 'Retinal Tear', color: 'red', tool: 'pen', width: 5 },
   detachment: { label: 'Retinal Detachment', color: 'blue', tool: 'brush', width: 20 },
@@ -88,5 +88,5 @@ export const PATHOLOGY_PRESETS: Record<PathologyType, PathologyPreset> = {
   hard_exudate: { label: 'Hard Exudate', color: 'yellow', tool: 'pen', width: 3 },
   edema: { label: 'Edema', color: 'yellow', tool: 'brush', width: 15 },
   lattice: { label: 'Lattice Degeneration', color: 'blue', tool: 'pattern', width: 4 },
-  normal: { label: 'Normal Drawing', color: 'pink', tool: 'pen', width: 2 },
+  normal: { label: 'Normal', color: 'pink', tool: 'pen', width: 2 },
 };
