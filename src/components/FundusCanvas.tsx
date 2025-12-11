@@ -32,6 +32,7 @@ interface FundusCanvasProps {
     disabled?: boolean;
     disableContextRotation?: boolean;
     vesselOpacity?: number;
+    className?: string;
 }
 
 const CIRCLES = {
@@ -55,6 +56,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
     disabled = false,
     disableContextRotation = false,
     vesselOpacity = 0,
+    className = '',
 }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [elements, setElements] = useState<FundusElement[]>([]);
@@ -812,7 +814,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             ref={canvasRef}
             width={width}
             height={height}
-            className={`border border-gray-200 rounded-2xl bg-white touch-none shadow-sm max-w-full h-auto ${disabled ? 'cursor-default' : 'cursor-crosshair'}`}
+            className={`border border-gray-200 rounded-2xl bg-white touch-none shadow-sm max-w-full h-auto ${disabled ? 'cursor-default' : 'cursor-crosshair'} ${className}`}
             onMouseDown={handleStart}
             onMouseMove={handleMove}
             onMouseUp={handleEnd}

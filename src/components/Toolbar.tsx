@@ -397,7 +397,7 @@ const MobileToolbar: React.FC<ToolbarProps> = ({
 
     return (
         <>
-            <div className="w-full h-full flex items-center">
+            <div className="w-full h-full flex items-center overflow-hidden">
                 <div className="flex flex-col items-center gap-3 w-full pointer-events-auto">
 
                     {/* Brush Size Slider (Conditional) */}
@@ -417,7 +417,7 @@ const MobileToolbar: React.FC<ToolbarProps> = ({
                     )}
 
                     {/* Main Toolbar Pill */}
-                    <div className="flex items-center gap-1.5 glass shadow-xl shadow-gray-200/40 dark:shadow-black/30 rounded-full p-2 pl-3 pr-2 w-full max-w-sm justify-between">
+                    <div className="overflow-x-auto no-scrollbar flex items-center gap-1.5 glass shadow-xl shadow-gray-200/40 dark:shadow-black/30 rounded-full p-2 pl-3 pr-2 w-full max-w-sm justify-between">
                         {/* Tools Section (Horizontal Scroll) */}
                         <div className="relative group flex items-center justify-center w-[140px] shrink-0">
                             {/* Scroll hint - Left */}

@@ -163,31 +163,32 @@ function AppContent() {
       </a>
 
       {/* Header for Mobile / Tablet */}
-      <header className="lg:hidden h-14 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 shrink-0 z-20 transition-colors">
+      <header className="lg:hidden h-14 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-3 shrink-0 z-20 transition-colors">
         <div className="flex items-baseline gap-2">
-          <h1 className="text-sm font-semibold text-gray-900 dark:text-gray-50">Retinal Fundus Charting</h1>
+          <h1 className="text-sm font-semibold text-gray-900 dark:text-gray-50 hidden sm:block">Retinal Fundus Charting</h1>
+          <h1 className="text-sm font-semibold text-gray-900 dark:text-gray-50 sm:hidden">RFC</h1>
           <span className="text-[10px] text-gray-400 font-mono">v{__APP_VERSION__}</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {/* Dark Mode Toggle */}
           <button
             onClick={toggleDarkMode}
-            className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
           >
-            {isDark ? <Sun size={18} /> : <Moon size={18} />}
+            {isDark ? <Sun size={16} /> : <Moon size={16} />}
           </button>
           <button
             onClick={handle3DView}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 rounded-lg text-xs font-semibold border border-primary-100 dark:border-primary-500/30 active:scale-95 transition-transform"
+            className="flex items-center gap-1 px-2 py-1.5 bg-primary-50 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 rounded-lg text-[10px] font-bold border border-primary-100 dark:border-primary-500/30 active:scale-95 transition-transform uppercase tracking-wider"
           >
             3D View
           </button>
           <button
             onClick={() => setIsInverted(!isInverted)}
-            className="text-xs font-medium text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-500/20 px-2 py-1 rounded active:scale-95 transition-transform"
+            className="px-2 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg text-[10px] font-bold border border-gray-200 dark:border-gray-700 active:scale-95 transition-transform uppercase tracking-wider"
           >
-            {isInverted ? 'Inverted' : 'Standard'}
+            {isInverted ? 'Inv' : 'Std'}
           </button>
         </div>
       </header>
@@ -265,15 +266,15 @@ function AppContent() {
       {/* Center - Canvas Area */}
       <main
         id="main-canvas"
-        className="flex-1 relative bg-gray-100 dark:bg-gray-950 overflow-hidden flex items-center justify-center p-2 sm:p-4 lg:p-8 transition-colors"
+        className="flex-1 relative bg-gray-100 dark:bg-gray-950 overflow-hidden flex flex-col items-center justify-center lg:justify-center p-2 pb-40 sm:p-4 lg:p-8 transition-colors"
       >
         {/* Canvas Container */}
-        <div className="relative shadow-2xl shadow-black/10 dark:shadow-black/30 rounded-full lg:rounded-2xl overflow-hidden bg-white dark:bg-gray-900 ring-1 ring-black/5 dark:ring-white/5">
+        <div className="relative shadow-2xl shadow-black/10 dark:shadow-black/30 rounded-full lg:rounded-2xl overflow-hidden bg-white dark:bg-gray-900 ring-1 ring-black/5 dark:ring-white/5 w-full max-w-[90w] lg:max-w-none aspect-square lg:aspect-auto lg:w-auto lg:h-auto start-canvas-scale">
           <motion.div
             initial={false}
             animate={{ rotate: isInverted ? 180 : 0 }}
             transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            className="origin-center"
+            className="origin-center w-full h-full"
           >
             <FundusCanvas
               ref={canvasRef}
@@ -293,6 +294,7 @@ function AppContent() {
               onSelectionChange={setSelectedElementId}
               selectedElementId={selectedElementId}
               disabled={show3D}
+              className="w-full h-full"
             />
           </motion.div>
         </div>
