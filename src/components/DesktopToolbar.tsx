@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Eye, Download, Undo, Redo, Trash2, HelpCircle, RotateCw, Box, Sparkles, Settings } from 'lucide-react';
+import { Eye, Download, Undo, Redo, Trash2, HelpCircle, RotateCw, Box, Sparkles } from 'lucide-react';
 import { MEDICAL_COLORS, TOOL_DESCRIPTIONS, PATHOLOGY_PRESETS, type PathologyType, type ColorCode, type ToolType } from '../utils/types';
 import { type ToolbarProps, TOOLS } from './ToolbarConstants';
 
@@ -38,7 +38,6 @@ export const DesktopToolbar: React.FC<ToolbarProps> = ({
     vesselOpacity,
     setVesselOpacity,
     isProMode = false,
-    setShowSettings
 }) => {
     return (
         <div className="flex flex-col gap-5 p-4 w-full transition-all h-full">

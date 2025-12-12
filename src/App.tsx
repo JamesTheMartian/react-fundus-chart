@@ -17,9 +17,12 @@ import { SettingsModal } from './components/SettingsModal';
 import { useDarkMode } from './hooks/useDarkMode';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
-import type { ColorCode, ToolType, EyeSide, PathologyType, FundusElement } from './utils/types';
+import type { ColorCode, ToolType, EyeSide, PathologyType, FundusElement, GraphicsQuality } from './utils/types';
 import { PATHOLOGY_PRESETS } from './utils/types';
 import { APP_CONFIG } from './utils/constants';
+
+// Storage key for graphics quality preference
+const GRAPHICS_QUALITY_KEY = 'graphics_quality';
 
 // =================================================================
 // Main App Content (needs Toast context)
@@ -45,6 +48,22 @@ function AppContent() {
   const [isProMode, setIsProMode] = useState(false);
   const [showSettingsMobile, setShowSettingsMobile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [graphicsQuality, setGraphicsQualityState] = useState<GraphicsQuality>(() => {
+    // Load from localStorage or default to 'high'
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(GRAPHICS_QUALITY_KEY) as GraphicsQuality | null;
+      if (stored && ['low', 'medium', 'high'].includes(stored)) {
+        return stored;
+      }
+    }
+    return 'high';
+  });
+
+  // Wrapper to persist graphics quality to localStorage
+  const setGraphicsQuality = (quality: GraphicsQuality) => {
+    setGraphicsQualityState(quality);
+    localStorage.setItem(GRAPHICS_QUALITY_KEY, quality);
+  };
 
   const canvasRef = useRef<FundusCanvasRef>(null);
   const { showToast } = useToast();
@@ -344,6 +363,7 @@ function AppContent() {
           detachmentHeight={detachmentHeight}
           onClose={() => setShow3D(false)}
           eyeSide={eyeSide}
+          graphicsQuality={graphicsQuality}
         />
       )}
 
@@ -399,6 +419,8 @@ function AppContent() {
           setShowSettingsMobile(false);
           setShowShortcuts(true);
         }}
+        graphicsQuality={graphicsQuality}
+        setGraphicsQuality={setGraphicsQuality}
       />
     </div>
   );

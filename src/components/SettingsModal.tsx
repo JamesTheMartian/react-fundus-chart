@@ -1,8 +1,16 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Moon, Sun, Zap, Keyboard, HelpCircle, Info, ExternalLink } from 'lucide-react';
+import { X, Moon, Sun, Zap, Keyboard, HelpCircle, Info, ExternalLink, Cpu } from 'lucide-react';
 
 import { APP_CONFIG } from '../utils/constants';
+import type { GraphicsQuality } from '../utils/types';
+
+// Graphics quality labels and descriptions
+const GRAPHICS_QUALITY_OPTIONS: { value: GraphicsQuality; label: string; description: string }[] = [
+    { value: 'low', label: 'Low', description: 'Best performance' },
+    { value: 'medium', label: 'Medium', description: 'Balanced' },
+    { value: 'high', label: 'High', description: 'Best visuals' },
+];
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -12,6 +20,8 @@ interface SettingsModalProps {
     isProMode: boolean;
     setIsProMode: (isPro: boolean) => void;
     onShowShortcuts: () => void;
+    graphicsQuality: GraphicsQuality;
+    setGraphicsQuality: (quality: GraphicsQuality) => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -22,6 +32,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     isProMode,
     setIsProMode,
     onShowShortcuts,
+    graphicsQuality,
+    setGraphicsQuality,
 }) => {
     if (!isOpen) return null;
 
@@ -40,10 +52,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     initial={{ scale: 0.95, opacity: 0, y: 10 }}
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                    className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10"
+                    className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10 max-h-[85vh] overflow-y-auto"
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 sticky top-0 bg-white dark:bg-gray-900 z-10">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{APP_CONFIG.name} Settings</h2>
                         <button
                             onClick={onClose}
@@ -76,6 +88,56 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 </div>
                                 <div className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out ${isDark ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}`}>
                                     <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out ${isDark ? 'translate-x-4' : 'translate-x-0'}`} />
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Graphics Quality Section */}
+                        <section className="space-y-3">
+                            <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">3D Graphics</h3>
+                            <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500">
+                                        <Cpu size={18} />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Graphics Quality</span>
+                                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                                            Affects 3D view performance
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Quality Selector */}
+                                <div className="flex gap-2 mt-2">
+                                    {GRAPHICS_QUALITY_OPTIONS.map((option) => (
+                                        <button
+                                            key={option.value}
+                                            onClick={() => setGraphicsQuality(option.value)}
+                                            className={`flex-1 py-2 px-3 rounded-lg text-center transition-all duration-200 ${graphicsQuality === option.value
+                                                    ? 'bg-primary-600 text-white shadow-md'
+                                                    : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
+                                                }`}
+                                        >
+                                            <div className="text-xs font-semibold">{option.label}</div>
+                                            <div className={`text-[10px] ${graphicsQuality === option.value ? 'text-white/70' : 'text-gray-400 dark:text-gray-500'}`}>
+                                                {option.description}
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Quality Description */}
+                                <div className="mt-3 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 rounded-lg p-2">
+                                    {graphicsQuality === 'low' && (
+                                        <span>🔋 <strong>Low:</strong> Simple solid rendering. Ideal for older devices or battery saving.</span>
+                                    )}
+                                    {graphicsQuality === 'medium' && (
+                                        <span>⚖️ <strong>Medium:</strong> Basic animations and effects. Good balance of quality and performance.</span>
+                                    )}
+                                    {graphicsQuality === 'high' && (
+                                        <span>✨ <strong>High:</strong> Full liquid effects and animations. Best visual experience.</span>
+                                    )}
                                 </div>
                             </div>
                         </section>

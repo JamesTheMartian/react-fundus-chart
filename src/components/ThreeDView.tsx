@@ -2,7 +2,7 @@ import React, { Suspense } from 'react';
 import { Canvas, useLoader } from '@react-three/fiber';
 import { OrbitControls, Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
-import type { FundusElement, EyeSide, Point } from '../utils/types';
+import type { FundusElement, EyeSide, Point, GraphicsQuality } from '../utils/types';
 // import './ThreeDView.css'; // Removed for Tailwind migration
 
 import { Sun, Eye, FileText, Flashlight, Cloud, ScanLine, X, Tag } from 'lucide-react';
@@ -185,9 +185,10 @@ interface EyeModelProps {
     eyeSide: EyeSide;
     viewMode: 'chart' | 'retina';
     clippingPlanes: THREE.Plane[];
+    graphicsQuality: GraphicsQuality;
 }
 
-const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHeight, eyeSide, viewMode, clippingPlanes }) => {
+const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHeight, eyeSide, viewMode, clippingPlanes, graphicsQuality }) => {
     const texture = useLoader(THREE.TextureLoader, textureUrl);
     const materialRef = React.useRef<THREE.MeshStandardMaterial>(null);
     const depthMaterialRef = React.useRef<THREE.MeshDepthMaterial>(null);
@@ -721,6 +722,7 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
                             map2DTo3D={map2DTo3D}
                             clippingPlanes={clippingPlanes}
                             elementId={`${e.id}-${index}`}
+                            quality={graphicsQuality}
                         />
                     );
                 } else {
@@ -733,6 +735,7 @@ const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHei
                             position={pos}
                             radius={0.15}
                             clippingPlanes={clippingPlanes}
+                            quality={graphicsQuality}
                         />
                     );
                 }
@@ -803,9 +806,10 @@ interface ThreeDViewProps {
     detachmentHeight: number;
     onClose: () => void;
     eyeSide: EyeSide;
+    graphicsQuality?: GraphicsQuality;
 }
 
-export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, elements, detachmentHeight, onClose, eyeSide }) => {
+export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, elements, detachmentHeight, onClose, eyeSide, graphicsQuality = 'high' }) => {
     useKeyboardShortcuts({
         on3DView: onClose,
     });
@@ -912,7 +916,7 @@ export const ThreeDView: React.FC<ThreeDViewProps> = ({ textureUrl, elements, de
                         )}
 
                         <Suspense fallback={<Html center><div className="text-white">Loading 3D Model...</div></Html>}>
-                            <EyeModel key={textureUrl} textureUrl={textureUrl} elements={elements} detachmentHeight={detachmentHeight} eyeSide={eyeSide} viewMode={viewMode} clippingPlanes={clippingPlanes} />
+                            <EyeModel key={textureUrl} textureUrl={textureUrl} elements={elements} detachmentHeight={detachmentHeight} eyeSide={eyeSide} viewMode={viewMode} clippingPlanes={clippingPlanes} graphicsQuality={graphicsQuality} />
                             {showHaze && <VitreousHaze clippingPlanes={clippingPlanes} />}
                         </Suspense>
 

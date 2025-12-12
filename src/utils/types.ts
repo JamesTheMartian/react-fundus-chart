@@ -1,5 +1,6 @@
 export type ToolType = 'pen' | 'brush' | 'pattern' | 'eraser' | 'fill' | 'select';
 export type EyeSide = 'OD' | 'OS'; // OD = Right Eye, OS = Left Eye
+export type GraphicsQuality = 'low' | 'medium' | 'high'; // For 3D shader performance settings
 
 export type ColorCode =
   | 'red'    // Arterioles, Attached Retina, Hemorrhages, Neovascularization
