@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Sun, Moon, Settings } from 'lucide-react';
+import { Settings } from 'lucide-react';
 
 import { FundusCanvas } from './components/FundusCanvas';
 import type { FundusCanvasRef } from './components/FundusCanvas';

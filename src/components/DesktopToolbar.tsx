@@ -77,14 +77,6 @@ export const DesktopToolbar: React.FC<ToolbarProps> = ({
             <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                     <SectionHeader>Drawing Tools</SectionHeader>
-                    {/* Settings Button - Desktop */}
-                    <button
-                        onClick={() => setShowSettings(true)}
-                        className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                        title="Settings"
-                    >
-                        <Settings size={16} />
-                    </button>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                     {TOOLS.map((tool) => (
