@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Sun, Moon, Keyboard } from 'lucide-react';
+import { Sun, Moon, Settings } from 'lucide-react';
 
 import { FundusCanvas } from './components/FundusCanvas';
 import type { FundusCanvasRef } from './components/FundusCanvas';
@@ -13,11 +13,13 @@ import { FeedbackPrompt } from './components/FeedbackPrompt';
 import { ToastProvider, useToast } from './components/Toast';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
+import { SettingsModal } from './components/SettingsModal';
 import { useDarkMode } from './hooks/useDarkMode';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 import type { ColorCode, ToolType, EyeSide, PathologyType, FundusElement } from './utils/types';
 import { PATHOLOGY_PRESETS } from './utils/types';
+import { APP_CONFIG } from './utils/constants';
 
 // =================================================================
 // Main App Content (needs Toast context)
@@ -41,6 +43,8 @@ function AppContent() {
   const [showConfirmClear, setShowConfirmClear] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [isProMode, setIsProMode] = useState(false);
+  const [showSettingsMobile, setShowSettingsMobile] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const canvasRef = useRef<FundusCanvasRef>(null);
   const { showToast } = useToast();
@@ -165,19 +169,12 @@ function AppContent() {
       {/* Header for Mobile / Tablet */}
       <header className="lg:hidden h-14 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-3 shrink-0 z-20 transition-colors">
         <div className="flex items-baseline gap-2">
-          <h1 className="text-sm font-semibold text-gray-900 dark:text-gray-50 hidden sm:block">Retinal Fundus Charting</h1>
-          <h1 className="text-sm font-semibold text-gray-900 dark:text-gray-50 sm:hidden">RFC</h1>
-          <span className="text-[10px] text-gray-400 font-mono">v{__APP_VERSION__}</span>
+          <h1 className="text-sm font-semibold text-gray-900 dark:text-gray-50 hidden sm:block">{APP_CONFIG.name}</h1>
+          <h1 className="text-sm font-semibold text-gray-900 dark:text-gray-50 sm:hidden">{APP_CONFIG.shortName}</h1>
+          <span className="text-[10px] text-gray-400 font-mono">v{APP_CONFIG.version}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          {/* Dark Mode Toggle */}
-          <button
-            onClick={toggleDarkMode}
-            className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {isDark ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
+          {/* 3D View Button */}
           <button
             onClick={handle3DView}
             className="flex items-center gap-1 px-2 py-1.5 bg-primary-50 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 rounded-lg text-[10px] font-bold border border-primary-100 dark:border-primary-500/30 active:scale-95 transition-transform uppercase tracking-wider"
@@ -197,42 +194,23 @@ function AppContent() {
       <aside className="hidden lg:flex flex-col w-80 h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 z-10 shrink-0 overflow-y-auto shadow-sm transition-colors">
         <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
           <div className="flex flex-col gap-0.5">
-            <h1 className="text-lg font-bold text-gray-900 dark:text-gray-50 tracking-tight">Retinal Charting</h1>
+            <h1 className="text-lg font-bold text-gray-900 dark:text-gray-50 tracking-tight">{APP_CONFIG.name}</h1>
             <p className="text-xs font-medium text-primary-600 dark:text-primary-400 uppercase tracking-widest flex items-center gap-1">
               Studio
-              <button
-                onClick={() => setIsProMode(!isProMode)}
-                className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold transition-all ${isProMode
-                  ? 'bg-primary-600 text-white shadow-sm'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                title={isProMode ? 'Disable Pro features' : 'Enable Pro features'}
-              >
-                Pro
-              </button>
+              {isProMode && <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary-600 text-white shadow-sm">Pro</span>}
             </p>
           </div>
-          <div className="flex items-center gap-1">
-            {/* Keyboard Shortcuts Button */}
+          {/* Settings Button - Desktop */}
+          <div className="flex items-center gap-1.5">
+            <p className="text-[10px] text-gray-400 mt-0.5 font-mono">v{APP_CONFIG.version}</p>
             <button
-              onClick={() => setShowShortcuts(true)}
-              className="p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              aria-label="Keyboard shortcuts"
-              title="Keyboard shortcuts (?)"
+              onClick={() => setShowSettings(true)}
+              className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              title="Settings"
             >
-              <Keyboard size={18} />
-            </button>
-            {/* Dark Mode Toggle */}
-            <button
-              onClick={toggleDarkMode}
-              className="p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-              title={isDark ? 'Light mode (D)' : 'Dark mode (D)'}
-            >
-              {isDark ? <Sun size={18} /> : <Moon size={18} />}
+              <Settings size={16} />
             </button>
           </div>
-          <p className="text-[10px] text-gray-400 mt-0.5 font-mono">v{__APP_VERSION__}</p>
         </div>
         <Toolbar
           activeColor={activeColor}
@@ -260,6 +238,8 @@ function AppContent() {
           setVesselOpacity={setVesselOpacity}
           variant="desktop"
           isProMode={isProMode}
+          setShowSettings={setShowSettings}
+          setShowSettingsMobile={setShowSettingsMobile}
         />
       </aside>
 
@@ -348,8 +328,11 @@ function AppContent() {
           onShowLegend={() => setShowLegend(true)}
           vesselOpacity={vesselOpacity}
           setVesselOpacity={setVesselOpacity}
+
           variant="mobile"
           isProMode={isProMode}
+          setShowSettingsMobile={setShowSettingsMobile}
+          setShowSettings={setShowSettings}
         />
       </div>
 
@@ -399,6 +382,23 @@ function AppContent() {
       <KeyboardShortcutsModal
         isOpen={showShortcuts}
         onClose={() => setShowShortcuts(false)}
+      />
+
+      <SettingsModal
+        isOpen={showSettings || showSettingsMobile}
+        onClose={() => {
+          setShowSettings(false);
+          setShowSettingsMobile(false);
+        }}
+        isDark={isDark}
+        toggleDarkMode={toggleDarkMode}
+        isProMode={isProMode}
+        setIsProMode={setIsProMode}
+        onShowShortcuts={() => {
+          setShowSettings(false);
+          setShowSettingsMobile(false);
+          setShowShortcuts(true);
+        }}
       />
     </div>
   );
