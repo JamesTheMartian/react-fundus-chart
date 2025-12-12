@@ -31,6 +31,8 @@ interface FundusCanvasProps {
     selectedElementId?: string | null;
     disabled?: boolean;
     disableContextRotation?: boolean;
+    vesselOpacity?: number;
+    className?: string;
 }
 
 const CIRCLES = {
@@ -53,6 +55,8 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
     selectedElementId: propSelectedElementId,
     disabled = false,
     disableContextRotation = false,
+    vesselOpacity = 0,
+    className = '',
 }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [elements, setElements] = useState<FundusElement[]>([]);
@@ -60,6 +64,29 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
     const [currentElement, setCurrentElement] = useState<FundusElement | null>(null);
     const [hoveredElementId, setHoveredElementId] = useState<string | null>(null);
     const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStartPoint, setDragStartPoint] = useState<Point | null>(null);
+    const vesselMapRef = useRef<HTMLImageElement | null>(null);
+
+    useEffect(() => {
+        const img = new Image();
+        // Use BASE_URL to handle deployment subpaths
+        const baseUrl = import.meta.env.BASE_URL;
+        // Remove trailing slash from base if present to avoid double slashes if path starts with /
+        // Actually BASE_URL usually ends with / if set.
+        // Let's be safe:
+        const cleanBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+        img.src = `${cleanBase}/textures/vessel_map.png`;
+
+        img.onload = () => {
+            vesselMapRef.current = img;
+            setVesselMapLoaded(true);
+        };
+        img.onerror = (e) => {
+            console.error('Failed to load vessel map:', img.src, e);
+        };
+    }, []);
+    const [vesselMapLoaded, setVesselMapLoaded] = useState(false);
 
     const drawBackground = (ctx: CanvasRenderingContext2D, center: Point, radius: number, inverted: boolean) => {
         ctx.save();
@@ -77,6 +104,28 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
 
         // Clear background
         ctx.fillRect(0, 0, width, height);
+
+        // Draw Vessel Map Overlay
+        if (vesselOpacity > 0 && vesselMapRef.current) {
+            ctx.save();
+            ctx.globalAlpha = vesselOpacity;
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+            ctx.clip();
+            // If eyeSide is OS, invert the image
+            if (eyeSide === 'OD') {
+                ctx.drawImage(vesselMapRef.current, center.x - radius, center.y - radius, radius * 2, radius * 2);
+            }
+            else {
+                // draw image must be flipped
+                ctx.save();
+                ctx.translate(center.x, center.y);
+                ctx.scale(-1, 1);
+                ctx.drawImage(vesselMapRef.current, -radius, -radius, radius * 2, radius * 2);
+                ctx.restore();
+            }
+            ctx.restore();
+        }
 
         // Draw Concentric Circles
         [CIRCLES.EQUATOR, CIRCLES.ORA_SERRATA, CIRCLES.PARS_PLANA].forEach(ratio => {
@@ -148,16 +197,33 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         const discAngle = eyeSide === 'OD' ? 0 : Math.PI;
         const discDist = radius * 0.3;
 
-        const discX = center.x + Math.cos(discAngle) * discDist;
+        const discX = center.x - (eyeSide === 'OD' ? 15 : -15) + Math.cos(discAngle) * discDist;
         const discY = center.y - 10 + Math.sin(discAngle) * discDist;
 
         ctx.beginPath();
-        ctx.ellipse(discX, discY, 20, 25, 0, 0, Math.PI * 2);
+        ctx.ellipse(discX, discY, 15, 15, 0, 0, Math.PI * 2);
         ctx.fillStyle = '#dd708aff'; // Light yellow
         ctx.fill();
         ctx.stroke();
 
         ctx.restore();
+    };
+
+    // Helper to check if a point is inside the optic disc region
+    const isPointInOpticDisc = (point: Point): boolean => {
+        const center = { x: width / 2, y: height / 2 };
+        const radius = Math.min(width, height) / 2 - 20;
+
+        const discAngle = eyeSide === 'OD' ? 0 : Math.PI;
+        const discDist = radius * 0.3;
+
+        const discX = center.x - (eyeSide === 'OD' ? 15 : -15) + Math.cos(discAngle) * discDist;
+        const discY = center.y - 10 + Math.sin(discAngle) * discDist;
+        const discRadius = 15; // Same as in drawBackground
+
+        const dx = point.x - discX;
+        const dy = point.y - discY;
+        return (dx * dx + dy * dy) <= (discRadius * discRadius);
     };
 
     const isPointInElement = (point: Point, element: FundusElement): boolean => {
@@ -226,9 +292,13 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         }
 
         if (element.type === 'stroke') {
-            if (element.toolType === 'brush') {
-                ctx.globalAlpha = element.layer === 'vitreous' ? 0.3 : 0.5;
-                ctx.lineWidth = width * 2;
+            // Brush strokes handled with buffer approach to prevent self-overlap darkening
+            // The caller (render loop) handles this by drawing brush strokes on a separate buffer
+            const isBrush = element.toolType === 'brush';
+            if (isBrush) {
+                // For brush: draw at full opacity here, alpha is applied when compositing the buffer
+                ctx.globalAlpha = 1.0;
+                ctx.lineWidth = (width || 2) * 2;
             }
 
             if (element.points) {
@@ -502,13 +572,47 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         const layerCtx = layerCanvas.getContext('2d');
 
         if (layerCtx) {
-            elements.forEach(s => {
+            // Separate brush strokes from other elements for buffer-based rendering
+            const brushElements = elements.filter(s => s.toolType === 'brush');
+            const otherElements = elements.filter(s => s.toolType !== 'brush');
+
+            // Draw non-brush elements directly
+            otherElements.forEach(s => {
                 drawElement(layerCtx, s, shouldRotateContext);
             });
+
+            // Draw brush elements on a separate buffer, then composite with alpha
+            if (brushElements.length > 0) {
+                const brushBuffer = document.createElement('canvas');
+                brushBuffer.width = width;
+                brushBuffer.height = height;
+                const brushCtx = brushBuffer.getContext('2d');
+                if (brushCtx) {
+                    brushElements.forEach(s => {
+                        drawElement(brushCtx, s, shouldRotateContext);
+                    });
+                    // Composite brush buffer with 0.5 opacity (or vitreous 0.3)
+                    layerCtx.globalAlpha = 0.5;
+                    layerCtx.drawImage(brushBuffer, 0, 0);
+                    layerCtx.globalAlpha = 1.0;
+                }
+            }
+
+            // Draw current element
             if (currentElement) {
-                // Current element visibility check
-                const isVitreous = currentElement.layer === 'vitreous';
-                if ((isVitreous) || (!isVitreous)) {
+                if (currentElement.toolType === 'brush') {
+                    // Draw current brush stroke on its own buffer
+                    const currentBrushBuffer = document.createElement('canvas');
+                    currentBrushBuffer.width = width;
+                    currentBrushBuffer.height = height;
+                    const currentBrushCtx = currentBrushBuffer.getContext('2d');
+                    if (currentBrushCtx) {
+                        drawElement(currentBrushCtx, currentElement, shouldRotateContext);
+                        layerCtx.globalAlpha = currentElement.layer === 'vitreous' ? 0.3 : 0.5;
+                        layerCtx.drawImage(currentBrushBuffer, 0, 0);
+                        layerCtx.globalAlpha = 1.0;
+                    }
+                } else {
                     drawElement(layerCtx, currentElement, shouldRotateContext);
                 }
             }
@@ -516,7 +620,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             ctx.drawImage(layerCanvas, 0, 0);
         }
 
-    }, [width, height, isInverted, elements, currentElement, eyeSide, hoveredElementId, selectedElementId, disableContextRotation]);
+    }, [width, height, isInverted, elements, currentElement, eyeSide, hoveredElementId, selectedElementId, disableContextRotation, vesselOpacity, vesselMapLoaded]);
 
     const getCanvasPoint = (e: React.MouseEvent | React.TouchEvent): Point => {
         const canvas = canvasRef.current;
@@ -565,7 +669,14 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             // Find clicked element (reverse order for top-most)
             const clickedElement = [...elements].reverse().find(el => isPointInElement(point, el));
             if (clickedElement) {
-                setSelectedElementId(clickedElement.id);
+                if (clickedElement.id === selectedElementId) {
+                    // Start dragging the already-selected element
+                    setIsDragging(true);
+                    setDragStartPoint(point);
+                } else {
+                    // Select new element
+                    setSelectedElementId(clickedElement.id);
+                }
             } else {
                 setSelectedElementId(null);
             }
@@ -641,12 +752,41 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         const point = getCanvasPoint(e);
 
         if (activeTool === 'select') {
-            const hovered = [...elements].reverse().find(el => isPointInElement(point, el));
-            setHoveredElementId(hovered ? hovered.id : null);
+            // Handle dragging selected element
+            if (isDragging && selectedElementId && dragStartPoint) {
+                const dx = point.x - dragStartPoint.x;
+                const dy = point.y - dragStartPoint.y;
+
+                setElements(prev => prev.map(el => {
+                    if (el.id !== selectedElementId) return el;
+
+                    if (el.type === 'stroke' && el.points) {
+                        // Translate all points in the stroke
+                        return {
+                            ...el,
+                            points: el.points.map(p => p ? { x: p.x + dx, y: p.y + dy } : null)
+                        };
+                    } else if ((el.type === 'hemorrhage' || el.type === 'spot') && el.position) {
+                        // Move shape position
+                        return {
+                            ...el,
+                            position: { x: el.position.x + dx, y: el.position.y + dy }
+                        };
+                    }
+                    return el;
+                }));
+                setDragStartPoint(point);
+            } else {
+                const hovered = [...elements].reverse().find(el => isPointInElement(point, el));
+                setHoveredElementId(hovered ? hovered.id : null);
+            }
             return;
         }
 
         if (!currentElement) return;
+
+        // Prevent drawing inside optic disc
+        if (isPointInOpticDisc(point)) return;
 
         setCurrentElement(prev => prev && prev.points ? {
             ...prev,
@@ -656,6 +796,13 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
 
     const handleEnd = () => {
         if (disabled) return;
+
+        // Reset dragging state
+        if (isDragging) {
+            setIsDragging(false);
+            setDragStartPoint(null);
+        }
+
         if (currentElement) {
             setElements(prev => [...prev, currentElement]);
             setCurrentElement(null);
@@ -667,7 +814,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             ref={canvasRef}
             width={width}
             height={height}
-            className={`border border-gray-200 rounded-2xl bg-white touch-none shadow-sm max-w-full h-auto ${disabled ? 'cursor-default' : 'cursor-crosshair'}`}
+            className={`border border-gray-200 rounded-2xl bg-white touch-none shadow-sm max-w-full h-auto ${disabled ? 'cursor-default' : 'cursor-crosshair'} ${className}`}
             onMouseDown={handleStart}
             onMouseMove={handleMove}
             onMouseUp={handleEnd}

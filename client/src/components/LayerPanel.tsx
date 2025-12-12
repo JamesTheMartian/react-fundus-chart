@@ -41,8 +41,10 @@ export const LayerPanel: React.FC<LayerPanelProps> = ({
     };
 
     return (
-        <div className="flex flex-col w-full h-full bg-white p-5">
-            <h3 className="text-[10px] font-bold text-gray-400 mb-4 uppercase tracking-widest">Layers & Objects</h3>
+        <div className="flex flex-col w-full h-full bg-white dark:bg-gray-900 p-5 transition-colors">
+            <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 mb-4 uppercase tracking-widest">
+                Layers & Objects
+            </h3>
 
             <div className="flex-1 overflow-y-auto flex flex-col gap-2 max-h-[200px] lg:max-h-none overflow-x-hidden p-1">
                 <AnimatePresence mode='popLayout'>
@@ -54,46 +56,56 @@ export const LayerPanel: React.FC<LayerPanelProps> = ({
                             exit={{ opacity: 0, x: -20 }}
                             transition={{ type: "spring", stiffness: 500, damping: 30 }}
                             key={element.id}
-                            className={`group flex items-center justify-between p-3 rounded-xl cursor-pointer transition-colors duration-200 border ${element.id === selectedElementId
-                                ? 'border-blue-200 bg-blue-50/50 shadow-sm'
-                                : 'border-transparent hover:bg-gray-50 hover:border-gray-100'
+                            className={`group flex items-center justify-between p-4 rounded-xl cursor-pointer transition-colors duration-200 border min-h-[52px] ${element.id === selectedElementId
+                                ? 'border-primary-200 dark:border-primary-500/30 bg-primary-50/50 dark:bg-primary-500/10 shadow-sm'
+                                : 'border-transparent hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-100 dark:hover:border-gray-700'
                                 }`}
                             onClick={() => onSelect(element.id)}
                         >
                             <div className="flex items-center gap-3 overflow-hidden">
-                                <span className="w-2.5 h-2.5 rounded-full ring-1 ring-black/5 shrink-0" style={{ backgroundColor: element.color }}></span>
-                                <span className={`text-sm whitespace-nowrap overflow-hidden text-ellipsis ${element.id === selectedElementId ? 'font-semibold text-blue-900' : 'font-medium text-gray-700'}`}>
+                                <span
+                                    className="w-3 h-3 rounded-full ring-1 ring-black/5 dark:ring-white/10 shrink-0"
+                                    style={{ backgroundColor: element.color }}
+                                />
+                                <span className={`text-sm whitespace-nowrap overflow-hidden text-ellipsis ${element.id === selectedElementId
+                                    ? 'font-semibold text-primary-900 dark:text-primary-300'
+                                    : 'font-medium text-gray-700 dark:text-gray-300'
+                                    }`}>
                                     {element.name || `${element.pathology || element.type} ${element.id.slice(-4)}`}
                                 </span>
                             </div>
                             <div className={`flex gap-1 transition-opacity duration-200 ${element.id === selectedElementId ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                                 }`}>
                                 <button
-                                    className="p-1.5 rounded-lg border-none bg-transparent text-gray-400 cursor-pointer flex items-center justify-center hover:bg-gray-200 hover:text-gray-700 transition-colors"
+                                    className="p-2 rounded-lg border-none bg-transparent text-gray-400 dark:text-gray-500 cursor-pointer flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         onUpdate(element.id, { visible: !element.visible });
                                     }}
                                     title={element.visible ? "Hide" : "Show"}
+                                    aria-label={element.visible ? "Hide layer" : "Show layer"}
                                 >
-                                    {element.visible ? <Eye size={16} /> : <EyeOff size={16} />}
+                                    {element.visible ? <Eye size={18} /> : <EyeOff size={18} />}
                                 </button>
                                 <button
-                                    className="p-1.5 rounded-lg border-none bg-transparent text-gray-400 cursor-pointer flex items-center justify-center hover:bg-red-50 hover:text-red-600 transition-colors"
+                                    className="p-2 rounded-lg border-none bg-transparent text-gray-400 dark:text-gray-500 cursor-pointer flex items-center justify-center hover:bg-danger-50 dark:hover:bg-danger-500/10 hover:text-danger-600 dark:hover:text-danger-400 transition-colors"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         onDelete(element.id);
                                     }}
                                     title="Delete"
+                                    aria-label="Delete layer"
                                 >
-                                    <Trash2 size={16} />
+                                    <Trash2 size={18} />
                                 </button>
                             </div>
                         </motion.div>
                     ))}
                 </AnimatePresence>
                 {elements.filter(e => e.toolType !== 'eraser').length === 0 && (
-                    <div className="text-center text-gray-400 text-sm py-8 italic">No objects drawn</div>
+                    <div className="text-center text-gray-400 dark:text-gray-500 text-sm py-8 italic">
+                        No objects drawn
+                    </div>
                 )}
             </div>
 
@@ -103,23 +115,29 @@ export const LayerPanel: React.FC<LayerPanelProps> = ({
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 20 }}
-                        className="mt-4 pt-4 border-t border-gray-100 bg-gray-50/50 p-4 rounded-xl border border-gray-100"
+                        className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700"
                     >
-                        <h4 className="text-xs font-bold uppercase tracking-wider mb-3 text-gray-500">Edit Object</h4>
+                        <h4 className="text-xs font-bold uppercase tracking-wider mb-3 text-gray-500 dark:text-gray-400">
+                            Edit Object
+                        </h4>
                         <div className="mb-3">
-                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Name</label>
+                            <label className="block text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">
+                                Name
+                            </label>
                             <input
                                 type="text"
-                                className="w-full p-2.5 border border-gray-200 rounded-lg text-sm font-medium transition-all focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-white"
+                                className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium transition-all focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                                 value={editName}
                                 onChange={(e) => setEditName(e.target.value)}
                                 placeholder="Name this object..."
                             />
                         </div>
                         <div className="mb-3">
-                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Description</label>
+                            <label className="block text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">
+                                Description
+                            </label>
                             <textarea
-                                className="w-full p-2.5 border border-gray-200 rounded-lg text-sm font-medium transition-all focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 bg-white resize-none"
+                                className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium transition-all focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 resize-none"
                                 value={editDesc}
                                 onChange={(e) => setEditDesc(e.target.value)}
                                 placeholder="Add clinical notes..."
@@ -128,7 +146,7 @@ export const LayerPanel: React.FC<LayerPanelProps> = ({
                         </div>
                         <div className="flex justify-end mt-2">
                             <button
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white border-none rounded-lg text-sm font-semibold cursor-pointer transition-all hover:bg-blue-700 shadow-sm hover:shadow active:scale-95"
+                                className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white border-none rounded-lg text-sm font-semibold cursor-pointer transition-all shadow-sm hover:shadow active:scale-95"
                                 onClick={handleSave}
                             >
                                 <Check size={16} strokeWidth={2.5} /> Save Changes
