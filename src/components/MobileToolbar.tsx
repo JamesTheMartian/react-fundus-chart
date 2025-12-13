@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Undo, Redo, Eye, Download, Trash2, Settings, Sparkles } from 'lucide-react';
+import { Undo, Redo, Eye, Download, Trash2, Settings, Sparkles, Palette } from 'lucide-react';
 import { MEDICAL_COLORS, PATHOLOGY_PRESETS, type PathologyType, type ColorCode, type ToolType } from '../utils/types';
 import { type ToolbarProps, TOOLS } from './ToolbarConstants';
 
@@ -51,13 +51,13 @@ export const MobileToolbar: React.FC<ToolbarProps> = ({
                     )}
 
                     {/* Main Toolbar Pill */}
-                    <div className="overflow-x-auto no-scrollbar flex items-center gap-1.5 glass shadow-xl shadow-gray-200/40 dark:shadow-black/30 rounded-full p-2 pl-3 pr-2 w-full max-w-sm justify-between">
+                    <div className="overflow-x-auto pl-8 pr-8 no-scrollbar flex items-center gap-1.5 shadow-xl shadow-gray-200/40 dark:shadow-black/30 w-full justify-between">
                         {/* Tools Section (Horizontal Scroll) */}
-                        <div className="relative group flex items-center justify-center w-[140px] shrink-0">
+                        <div className="relative glass rounded-full p-2 pl-0 pr-0 group flex items-center justify-center w-[200px] shrink-0">
                             {/* Scroll hint - Left */}
-                            <div className="absolute left-0 w-4 h-full bg-gradient-to-r from-white/90 dark:from-gray-900/90 to-transparent z-10 pointer-events-none" />
+                            <div className="absolute w-14 h-14 left-0 rounded-full bg-gradient-to-r from-white/90 dark:from-gray-900/90 to-transparent z-10 pointer-events-none" />
 
-                            <div className="flex gap-1 overflow-x-auto snap-x snap-mandatory px-2 no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                            <div className="flex gap-1 rounded-full overflow-x-auto snap-x snap-mandatory px-2 no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                                 {TOOLS.map((tool) => (
                                     <button
                                         key={tool.id}
@@ -83,20 +83,70 @@ export const MobileToolbar: React.FC<ToolbarProps> = ({
                             </div>
 
                             {/* Scroll hint - Right */}
-                            <div className="absolute right-0 w-4 h-full bg-gradient-to-l from-white/90 dark:from-gray-900/90 to-transparent z-10 pointer-events-none" />
+                            <div className="absolute w-14 h-14 right-0 rounded-full bg-gradient-to-l from-white/90 dark:from-gray-900/90 to-transparent z-10 pointer-events-none" />
+                        </div>
+
+                        <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 shrink-0 mx-1"></div>
+
+                        {/* Change Eye Side */}
+                        <div className='flex items-center gap-1 shrink-0'>
+                            <button
+                                onClick={() => eyeSide === 'OD' ? setEyeSide('OS') : setEyeSide('OD')}
+                                className="p-3 shrink-0 w-12 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-transform"
+                                aria-label="Switch eye side"
+                            >
+                                {eyeSide}
+                            </button>
                         </div>
 
                         <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 shrink-0 mx-1"></div>
 
                         {/* Active Color (Larger touch target) */}
-                        <button
-                            onClick={() => setShowMobileMenu(true)}
-                            className="w-11 h-11 rounded-full border border-gray-100 dark:border-gray-700 shadow-inner shrink-0 relative hover:scale-105 transition-transform"
-                            style={{ backgroundColor: MEDICAL_COLORS[activeColor] }}
-                            aria-label="Open color picker and tools"
-                        >
-                            <div className="absolute inset-0 rounded-full ring-1 ring-inset ring-black/5 dark:ring-white/10"></div>
-                        </button>
+                        <div className="flex items-center gap-3">
+                            {(() => {
+                                const availableColors = Object.keys(MEDICAL_COLORS) as ColorCode[];
+                                const colorsToDisplay: ColorCode[] = [];
+
+                                // Add active color first
+                                if (activeColor && availableColors.includes(activeColor)) {
+                                    colorsToDisplay.push(activeColor);
+                                }
+
+                                // Add up to two more unique colors
+                                let addedCount = 0;
+                                for (const color of availableColors) {
+                                    if (color !== activeColor && !colorsToDisplay.includes(color)) {
+                                        colorsToDisplay.push(color);
+                                        addedCount++;
+                                        if (addedCount >= 2) break;
+                                    }
+                                }
+
+                                return (
+                                    <>
+                                        {colorsToDisplay.map((color) => (
+                                            <button
+                                                key={color}
+                                                onClick={() => { setActiveColor(color); setShowMobileMenu(false); }}
+                                                className={`w-10 h-10 rounded-full border-2 transition-all ${activeColor === color
+                                                    ? 'border-gray-900 dark:border-white scale-110'
+                                                    : 'border-transparent'
+                                                    }`}
+                                                style={{ backgroundColor: MEDICAL_COLORS[color] }}
+                                                aria-label={`Select ${color}`}
+                                            />
+                                        ))}
+                                        <button
+                                            onClick={() => setShowMobileMenu(true)}
+                                            className="w-10 h-10 rounded-full flex items-center justify-center border border-gray-100 dark:border-gray-500 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors active:scale-90"
+                                            aria-label="More colors"
+                                        >
+                                            <Palette size={20} />
+                                        </button>
+                                    </>
+                                );
+                            })()}
+                        </div>
 
                         <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 shrink-0 mx-1"></div>
 
@@ -123,194 +173,196 @@ export const MobileToolbar: React.FC<ToolbarProps> = ({
 
             {/* Mobile Menu Overlay - Bottom Sheet (Tools mainly) */}
             <AnimatePresence>
-                {showMobileMenu && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="lg:hidden fixed inset-0 z-50 bg-black/30 backdrop-blur-sm pointer-events-auto"
-                        onClick={() => setShowMobileMenu(false)}
-                    >
+                {
+                    showMobileMenu && (
                         <motion.div
-                            initial={{ y: "100%" }}
-                            animate={{ y: 0 }}
-                            exit={{ y: "100%" }}
-                            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                            className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl shadow-2xl border-t border-gray-100 dark:border-gray-800 max-h-[75vh] flex flex-col overflow-hidden"
-                            onClick={e => e.stopPropagation()}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="lg:hidden fixed inset-0 z-50 bg-black/30 backdrop-blur-sm pointer-events-auto"
+                            onClick={() => setShowMobileMenu(false)}
                         >
-                            {/* Drag Handle */}
-                            <div className="flex justify-center py-3">
-                                <div className="w-10 h-1 bg-gray-300 dark:bg-gray-700 rounded-full" />
-                            </div>
-
-                            {/* Header */}
-                            <div className="flex justify-between items-center border-b border-gray-100 dark:border-gray-800 px-5 pb-3 bg-white dark:bg-gray-900 z-10 shrink-0">
-                                <h3 className="font-semibold text-gray-900 dark:text-gray-50">Tools</h3>
-                                <div className="flex items-center gap-2">
-                                    {/* Settings Trigger */}
-                                    <button
-                                        onClick={() => setShowSettingsMobile(true)}
-                                        className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center transition-all shrink-0 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
-                                        aria-label="Open settings"
-                                    >
-                                        <Settings size={20} />
-                                    </button>
-                                    <button
-                                        onClick={() => setShowMobileMenu(false)}
-                                        className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-500 dark:text-gray-400"
-                                        aria-label="Close menu"
-                                    >
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
-                                    </button>
+                            <motion.div
+                                initial={{ y: "100%" }}
+                                animate={{ y: 0 }}
+                                exit={{ y: "100%" }}
+                                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                                className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-3xl shadow-2xl border-t border-gray-100 dark:border-gray-800 max-h-[75vh] flex flex-col overflow-hidden"
+                                onClick={e => e.stopPropagation()}
+                            >
+                                {/* Drag Handle */}
+                                <div className="flex justify-center py-3">
+                                    <div className="w-10 h-1 bg-gray-300 dark:bg-gray-700 rounded-full" />
                                 </div>
-                            </div>
 
-                            {/* Scrollable Content */}
-                            <div className="overflow-y-auto p-5 pt-4 flex flex-col gap-5 relative flex-1">
-                                {/* Eye Selection */}
-                                <div>
-                                    <h4 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase mb-2">Eye Selection</h4>
-                                    <div className="flex gap-2 bg-gray-50 dark:bg-gray-800 p-1 rounded-xl">
+                                {/* Header */}
+                                <div className="flex justify-between items-center border-b border-gray-100 dark:border-gray-800 px-5 pb-3 bg-white dark:bg-gray-900 z-10 shrink-0">
+                                    <h3 className="font-semibold text-gray-900 dark:text-gray-50">Tools</h3>
+                                    <div className="flex items-center gap-2">
+                                        {/* Settings Trigger */}
                                         <button
-                                            onClick={() => setEyeSide('OD')}
-                                            className={`flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-lg text-sm font-semibold transition-all ${eyeSide === 'OD'
-                                                ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm ring-1 ring-black/5 dark:ring-white/5'
-                                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                                                }`}
+                                            onClick={() => setShowSettingsMobile(true)}
+                                            className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center transition-all shrink-0 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                                            aria-label="Open settings"
                                         >
-                                            <Eye size={18} className={eyeSide === 'OD' ? 'stroke-[2.5px]' : ''} /> OD
+                                            <Settings size={20} />
                                         </button>
                                         <button
-                                            onClick={() => setEyeSide('OS')}
-                                            className={`flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-lg text-sm font-semibold transition-all ${eyeSide === 'OS'
-                                                ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm ring-1 ring-black/5 dark:ring-white/5'
-                                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                                                }`}
+                                            onClick={() => setShowMobileMenu(false)}
+                                            className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-500 dark:text-gray-400"
+                                            aria-label="Close menu"
                                         >
-                                            <Eye size={18} className={eyeSide === 'OS' ? 'stroke-[2.5px]' : ''} /> OS
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
                                         </button>
                                     </div>
                                 </div>
 
-                                {/* Colors */}
-                                <div>
-                                    <h4 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase mb-2">Colors</h4>
-                                    <div className="grid grid-cols-6 gap-3">
-                                        {(Object.keys(MEDICAL_COLORS) as ColorCode[]).map((color) => (
+                                {/* Scrollable Content */}
+                                <div className="overflow-y-auto p-5 pt-4 flex flex-col gap-5 relative flex-1">
+                                    {/* Eye Selection */}
+                                    <div>
+                                        <h4 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase mb-2">Eye Selection</h4>
+                                        <div className="flex gap-2 bg-gray-50 dark:bg-gray-800 p-1 rounded-xl">
                                             <button
-                                                key={color}
-                                                onClick={() => { setActiveColor(color); setShowMobileMenu(false); }}
-                                                className={`w-10 h-10 rounded-full border-2 transition-all ${activeColor === color
-                                                    ? 'border-gray-900 dark:border-white scale-110'
-                                                    : 'border-transparent'
+                                                onClick={() => setEyeSide('OD')}
+                                                className={`flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-lg text-sm font-semibold transition-all ${eyeSide === 'OD'
+                                                    ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm ring-1 ring-black/5 dark:ring-white/5'
+                                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                                                     }`}
-                                                style={{ backgroundColor: MEDICAL_COLORS[color] }}
-                                                aria-label={`Select ${color}`}
-                                            />
-                                        ))}
+                                            >
+                                                <Eye size={18} className={eyeSide === 'OD' ? 'stroke-[2.5px]' : ''} /> OD
+                                            </button>
+                                            <button
+                                                onClick={() => setEyeSide('OS')}
+                                                className={`flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-lg text-sm font-semibold transition-all ${eyeSide === 'OS'
+                                                    ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm ring-1 ring-black/5 dark:ring-white/5'
+                                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                                                    }`}
+                                            >
+                                                <Eye size={18} className={eyeSide === 'OS' ? 'stroke-[2.5px]' : ''} /> OS
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
 
-                                {/* Pathology */}
-                                <div>
-                                    <h4 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase mb-2">Pathology</h4>
-                                    <select
-                                        value={activePathology}
-                                        onChange={(e) => setActivePathology(e.target.value as PathologyType)}
-                                        className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300"
-                                    >
-                                        {(Object.keys(PATHOLOGY_PRESETS) as PathologyType[]).map((type) => (
-                                            <option key={type} value={type}>{PATHOLOGY_PRESETS[type].label}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                {/* Brush Size */}
-                                <div>
-                                    <div className="flex justify-between mb-2">
-                                        <h4 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase">Brush Size</h4>
-                                        <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 rounded">{brushSize}px</span>
+                                    {/* Colors */}
+                                    <div>
+                                        <h4 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase mb-2">Colors</h4>
+                                        <div className="grid grid-cols-6 gap-3">
+                                            {(Object.keys(MEDICAL_COLORS) as ColorCode[]).map((color) => (
+                                                <button
+                                                    key={color}
+                                                    onClick={() => { setActiveColor(color); setShowMobileMenu(false); }}
+                                                    className={`w-10 h-10 rounded-full border-2 transition-all ${activeColor === color
+                                                        ? 'border-gray-900 dark:border-white scale-110'
+                                                        : 'border-transparent'
+                                                        }`}
+                                                    style={{ backgroundColor: MEDICAL_COLORS[color] }}
+                                                    aria-label={`Select ${color}`}
+                                                />
+                                            ))}
+                                        </div>
                                     </div>
-                                    <input
-                                        type="range"
-                                        min="1"
-                                        max="50"
-                                        value={brushSize}
-                                        onChange={(e) => setBrushSize(Number(e.target.value))}
-                                        className="w-full"
-                                    />
-                                </div>
 
-                                {/* Detachment height */}
-                                {activePathology === 'detachment' && (
-                                    <div className="flex flex-col gap-3 bg-primary-50/50 dark:bg-primary-500/10 p-4 rounded-xl border border-primary-100/50 dark:border-primary-500/20">
-                                        <div className="flex justify-between items-center">
-                                            <h4 className="text-xs font-semibold uppercase tracking-widest text-primary-500 dark:text-primary-400">Detachment Height</h4>
-                                            <span className="text-xs font-semibold text-primary-600 dark:text-primary-400 bg-primary-100 dark:bg-primary-500/20 px-2 py-1 rounded-md">{detachmentHeight}</span>
+                                    {/* Pathology */}
+                                    <div>
+                                        <h4 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase mb-2">Pathology</h4>
+                                        <select
+                                            value={activePathology}
+                                            onChange={(e) => setActivePathology(e.target.value as PathologyType)}
+                                            className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300"
+                                        >
+                                            {(Object.keys(PATHOLOGY_PRESETS) as PathologyType[]).map((type) => (
+                                                <option key={type} value={type}>{PATHOLOGY_PRESETS[type].label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Brush Size */}
+                                    <div>
+                                        <div className="flex justify-between mb-2">
+                                            <h4 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase">Brush Size</h4>
+                                            <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 rounded">{brushSize}px</span>
                                         </div>
                                         <input
                                             type="range"
-                                            min="0.1"
-                                            max="1.0"
-                                            step="0.1"
-                                            value={detachmentHeight}
-                                            onChange={(e) => setDetachmentHeight(Number(e.target.value))}
-                                            aria-label="Adjust Detachment Height"
+                                            min="1"
+                                            max="50"
+                                            value={brushSize}
+                                            onChange={(e) => setBrushSize(Number(e.target.value))}
                                             className="w-full"
                                         />
                                     </div>
-                                )}
 
-                                {/* Vessel Opacity */}
-                                <div>
-                                    <div className="flex justify-between mb-2">
-                                        <h4 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase">Vessel Map</h4>
-                                        <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 rounded">{Math.round(vesselOpacity * 100)}%</span>
+                                    {/* Detachment height */}
+                                    {activePathology === 'detachment' && (
+                                        <div className="flex flex-col gap-3 bg-primary-50/50 dark:bg-primary-500/10 p-4 rounded-xl border border-primary-100/50 dark:border-primary-500/20">
+                                            <div className="flex justify-between items-center">
+                                                <h4 className="text-xs font-semibold uppercase tracking-widest text-primary-500 dark:text-primary-400">Detachment Height</h4>
+                                                <span className="text-xs font-semibold text-primary-600 dark:text-primary-400 bg-primary-100 dark:bg-primary-500/20 px-2 py-1 rounded-md">{detachmentHeight}</span>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min="0.1"
+                                                max="1.0"
+                                                step="0.1"
+                                                value={detachmentHeight}
+                                                onChange={(e) => setDetachmentHeight(Number(e.target.value))}
+                                                aria-label="Adjust Detachment Height"
+                                                className="w-full"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Vessel Opacity */}
+                                    <div>
+                                        <div className="flex justify-between mb-2">
+                                            <h4 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase">Vessel Map</h4>
+                                            <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 rounded">{Math.round(vesselOpacity * 100)}%</span>
+                                        </div>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="1"
+                                            step="0.05"
+                                            value={vesselOpacity}
+                                            onChange={(e) => setVesselOpacity(Number(e.target.value))}
+                                            className="w-full"
+                                        />
                                     </div>
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max="1"
-                                        step="0.05"
-                                        value={vesselOpacity}
-                                        onChange={(e) => setVesselOpacity(Number(e.target.value))}
-                                        className="w-full"
-                                    />
-                                </div>
 
-                                {/* Actions */}
-                                <div className="grid grid-cols-1 gap-3">
+                                    {/* Actions */}
+                                    <div className="grid grid-cols-1 gap-3">
+                                        <button
+                                            onClick={onAnalyze}
+                                            className="p-3.5 bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 rounded-xl text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                                        >
+                                            <Sparkles size={18} /> Analyze
+                                        </button>
+                                    </div>
+
+                                    {/* Clear */}
                                     <button
-                                        onClick={onAnalyze}
-                                        className="p-3.5 bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 rounded-xl text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                                        onClick={onClear}
+                                        className="w-full p-3.5 border border-danger-200 dark:border-danger-500/30 bg-danger-50 dark:bg-danger-500/10 text-danger-600 dark:text-danger-400 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
                                     >
-                                        <Sparkles size={18} /> Analyze
+                                        <Trash2 size={18} /> Clear Canvas
+                                    </button>
+
+                                    <button
+                                        onClick={onDownload}
+                                        className="w-full p-3.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center justify-center gap-2"
+                                    >
+                                        <Download size={18} /> Download Image
                                     </button>
                                 </div>
 
-                                {/* Clear */}
-                                <button
-                                    onClick={onClear}
-                                    className="w-full p-3.5 border border-danger-200 dark:border-danger-500/30 bg-danger-50 dark:bg-danger-500/10 text-danger-600 dark:text-danger-400 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
-                                >
-                                    <Trash2 size={18} /> Clear Canvas
-                                </button>
-
-                                <button
-                                    onClick={onDownload}
-                                    className="w-full p-3.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center justify-center gap-2"
-                                >
-                                    <Download size={18} /> Download Image
-                                </button>
-                            </div>
-
-                            {/* Scroll Indicator Gradient */}
-                            <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white dark:from-gray-900 to-transparent pointer-events-none" />
+                                {/* Scroll Indicator Gradient */}
+                                <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white dark:from-gray-900 to-transparent pointer-events-none" />
+                            </motion.div>
                         </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                    )
+                }
+            </AnimatePresence >
         </>
     );
 };

@@ -322,7 +322,7 @@ function AppContent() {
       )}
 
       {/* Mobile Toolbar (Floating) */}
-      <div className="lg:hidden absolute bottom-6 left-4 right-4 z-30 pointer-events-none flex flex-col items-center gap-3">
+      <div className="lg:hidden absolute bottom-6 left-0 right-0 z-30 pointer-events-none flex flex-col items-center gap-3">
         <Toolbar
           activeColor={activeColor}
           setActiveColor={setActiveColor}
