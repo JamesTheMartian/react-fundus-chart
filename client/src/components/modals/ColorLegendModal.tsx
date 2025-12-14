@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
-import { COLOR_LEGEND } from '../data/colorLegend';
+import { COLOR_LEGEND } from '../../data/colorLegend';
 // import './ColorLegendModal.css'; // Removed for Tailwind migration
 
 interface ColorLegendModalProps {

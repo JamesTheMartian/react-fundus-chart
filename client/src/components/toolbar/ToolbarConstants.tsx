@@ -1,5 +1,5 @@
 import { Pen, Brush, Grid, Eraser, PaintBucket, MousePointer } from 'lucide-react';
-import type { ColorCode, ToolType, EyeSide, PathologyType } from '../utils/types';
+import type { ColorCode, ToolType, EyeSide, PathologyType } from '../../utils/types';
 
 export interface ToolbarProps {
     activeColor: ColorCode;

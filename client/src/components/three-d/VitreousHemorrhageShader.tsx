@@ -2,7 +2,7 @@ import React, { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, extend } from '@react-three/fiber';
 import { shaderMaterial } from '@react-three/drei';
-import type { Point, GraphicsQuality } from '../utils/types';
+import type { Point, GraphicsQuality } from '../../utils/types';
 
 // =============================================================================
 // GLSL Noise Functions

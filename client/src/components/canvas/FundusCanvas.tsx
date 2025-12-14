@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
-import type { FundusElement, ColorCode, ToolType, Point, EyeSide, PathologyType } from '../utils/types';
-import { MEDICAL_COLORS, PATHOLOGY_PRESETS } from '../utils/types';
+import type { FundusElement, ColorCode, ToolType, Point, EyeSide, PathologyType } from '../../utils/types';
+import { MEDICAL_COLORS, PATHOLOGY_PRESETS } from '../../utils/types';
 // import './FundusCanvas.css'; // Removed for Tailwind migration
 
 export interface FundusCanvasRef {
