@@ -2,18 +2,18 @@ import { useState, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Settings } from 'lucide-react';
 
-import { FundusCanvas } from './components/FundusCanvas';
-import type { FundusCanvasRef } from './components/FundusCanvas';
-import { Toolbar } from './components/Toolbar';
-import { ThreeDView } from './components/ThreeDView';
-import { AIAnalysisModal } from './components/AIAnalysisModal';
-import { ColorLegendModal } from './components/ColorLegendModal';
+import { FundusCanvas } from './components/canvas/FundusCanvas';
+import type { FundusCanvasRef } from './components/canvas/FundusCanvas';
+import { Toolbar } from './components/toolbar/Toolbar';
+import { ThreeDView } from './components/three-d/ThreeDView';
+import { AIAnalysisModal } from './components/modals/AIAnalysisModal';
+import { ColorLegendModal } from './components/modals/ColorLegendModal';
 import { LayerPanel } from './components/LayerPanel';
-import { FeedbackPrompt } from './components/FeedbackPrompt';
-import { ToastProvider, useToast } from './components/Toast';
-import { ConfirmDialog } from './components/ConfirmDialog';
-import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
-import { SettingsModal } from './components/SettingsModal';
+import { FeedbackPrompt } from './components/ui/FeedbackPrompt';
+import { ToastProvider, useToast } from './components/ui/Toast';
+import { ConfirmDialog } from './components/modals/ConfirmDialog';
+import { KeyboardShortcutsModal } from './components/modals/KeyboardShortcutsModal';
+import { SettingsModal } from './components/modals/SettingsModal';
 import { useDarkMode } from './hooks/useDarkMode';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
@@ -265,7 +265,7 @@ function AppContent() {
       {/* Center - Canvas Area */}
       <main
         id="main-canvas"
-        className="flex-1 relative bg-gray-100 dark:bg-gray-950 overflow-hidden flex flex-col items-center justify-center lg:justify-center p-2 pb-40 sm:p-4 lg:p-8 transition-colors"
+        className="flex-1 relative bg-gray-100 dark:bg-gray-950 overflow-hidden flex flex-col items-center justify-center lg:justify-center p-2 pb-60 h-[calc(100vh-60px)] lg:pb-0 sm:p-4 lg:p-8 transition-colors"
       >
         {/* Canvas Container */}
         <div className="relative shadow-2xl shadow-black/10 dark:shadow-black/30 rounded-full lg:rounded-2xl overflow-hidden bg-white dark:bg-gray-900 ring-1 ring-black/5 dark:ring-white/5 w-full max-w-[90w] lg:max-w-none aspect-square lg:aspect-auto lg:w-auto lg:h-auto start-canvas-scale">

@@ -2,13 +2,13 @@ import React, { Suspense } from 'react';
 import { Canvas, useLoader } from '@react-three/fiber';
 import { OrbitControls, Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
-import type { FundusElement, EyeSide, Point, GraphicsQuality } from '../utils/types';
+import type { FundusElement, EyeSide, Point, GraphicsQuality } from '../../utils/types';
 // import './ThreeDView.css'; // Removed for Tailwind migration
 
 import { Sun, Eye, FileText, Flashlight, Cloud, ScanLine, X, Tag } from 'lucide-react';
 import { useFrame } from '@react-three/fiber';
 
-import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { VitreousHemorrhageCloud, VitreousHemorrhageSpot } from './VitreousHemorrhageShader';
 
 

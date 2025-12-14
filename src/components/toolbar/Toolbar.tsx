@@ -1,7 +1,7 @@
 import React from 'react';
 import type { ToolbarProps } from './ToolbarConstants';
-import { DesktopToolbar } from './DesktopToolbar';
-import { MobileToolbar } from './MobileToolbar';
+import { DesktopToolbar } from './desktop/DesktopToolbar';
+import { MobileToolbar } from './mobile/MobileToolbar';
 
 // Re-export ToolbarProps for potential consumers (though explicit import from constants is preferred)
 export type { ToolbarProps } from './ToolbarConstants';

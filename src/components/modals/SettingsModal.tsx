@@ -2,8 +2,8 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Moon, Sun, Zap, Keyboard, HelpCircle, Info, ExternalLink, Cpu } from 'lucide-react';
 
-import { APP_CONFIG } from '../utils/constants';
-import type { GraphicsQuality } from '../utils/types';
+import { APP_CONFIG } from '../../utils/constants';
+import type { GraphicsQuality } from '../../utils/types';
 
 // Graphics quality labels and descriptions
 const GRAPHICS_QUALITY_OPTIONS: { value: GraphicsQuality; label: string; description: string }[] = [
@@ -115,8 +115,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                             key={option.value}
                                             onClick={() => setGraphicsQuality(option.value)}
                                             className={`flex-1 py-2 px-3 rounded-lg text-center transition-all duration-200 ${graphicsQuality === option.value
-                                                    ? 'bg-primary-600 text-white shadow-md'
-                                                    : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
+                                                ? 'bg-primary-600 text-white shadow-md'
+                                                : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
                                                 }`}
                                         >
                                             <div className="text-xs font-semibold">{option.label}</div>

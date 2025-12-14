@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Eye, Download, Undo, Redo, Trash2, HelpCircle, RotateCw, Box, Sparkles } from 'lucide-react';
-import { MEDICAL_COLORS, TOOL_DESCRIPTIONS, PATHOLOGY_PRESETS, type PathologyType, type ColorCode, type ToolType } from '../utils/types';
-import { type ToolbarProps, TOOLS } from './ToolbarConstants';
+import { MEDICAL_COLORS, TOOL_DESCRIPTIONS, PATHOLOGY_PRESETS, type PathologyType, type ColorCode, type ToolType } from '../../../utils/types';
+import { type ToolbarProps, TOOLS } from '../ToolbarConstants';
 
 // =================================================================
 // Section Header Component

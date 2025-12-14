@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { analyzeChart } from '../services/aiService';
+import { analyzeChart } from '../../services/aiService';
 import { Sparkles, X, Key, AlertCircle } from 'lucide-react';
 // import './AIAnalysisModal.css'; // Removed for Tailwind migration
 
