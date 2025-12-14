@@ -1,8 +1,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Undo, Redo, Eye, Download, Trash2, Settings, Sparkles, Palette } from 'lucide-react';
+import { Undo, Redo, Eye, Download, Trash2, Settings, Sparkles, Palette, FlipVertical2 } from 'lucide-react';
 import { MEDICAL_COLORS, PATHOLOGY_PRESETS, type PathologyType, type ColorCode, type ToolType } from '../utils/types';
 import { type ToolbarProps, TOOLS } from './ToolbarConstants';
+import { HorizontalScrollWithArrows } from './HorizontalScrollWithArrows';
 
 export const MobileToolbar: React.FC<ToolbarProps> = ({
     activeColor,
@@ -24,7 +25,8 @@ export const MobileToolbar: React.FC<ToolbarProps> = ({
     onAnalyze,
     vesselOpacity,
     setVesselOpacity,
-    setShowSettingsMobile
+    setShowSettingsMobile,
+    toggleInverted,
 }) => {
     const [showMobileMenu, setShowMobileMenu] = React.useState(false);
     const showBrushSlider = ['pen', 'brush', 'eraser'].includes(activeTool);
@@ -51,42 +53,51 @@ export const MobileToolbar: React.FC<ToolbarProps> = ({
                     )}
 
                     {/* Main Toolbar Pill */}
-                    <div className="overflow-x-auto pl-8 pr-8 no-scrollbar flex items-center gap-1.5 shadow-xl shadow-gray-200/40 dark:shadow-black/30 w-full justify-between">
-                        {/* Tools Section (Horizontal Scroll) */}
-                        <div className="relative glass rounded-full p-2 pl-0 pr-0 group flex items-center justify-center w-[200px] shrink-0">
-                            {/* Scroll hint - Left */}
-                            <div className="absolute w-14 h-14 left-0 rounded-full bg-gradient-to-r from-white/90 dark:from-gray-900/90 to-transparent z-10 pointer-events-none" />
 
-                            <div className="flex gap-1 rounded-full overflow-x-auto snap-x snap-mandatory px-2 no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                                {TOOLS.map((tool) => (
-                                    <button
-                                        key={tool.id}
-                                        onClick={() => setActiveTool(tool.id as ToolType)}
-                                        className={`relative p-3 rounded-full flex items-center justify-center transition-all active:scale-90 snap-center shrink-0 ${activeTool === tool.id
-                                            ? 'text-white shadow-md shadow-primary-500/30'
-                                            : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                                            }`}
-                                        aria-label={`${tool.title} (${tool.shortcut})`}
-                                    >
-                                        {activeTool === tool.id && (
-                                            <motion.div
-                                                layoutId="activeToolMobile"
-                                                className="absolute inset-0 bg-primary-600 rounded-full"
-                                                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                            />
-                                        )}
-                                        <span className="relative z-10">
-                                            <tool.icon size={20} className={activeTool === tool.id ? 'stroke-[2.5px]' : ''} />
-                                        </span>
-                                    </button>
-                                ))}
-                            </div>
 
-                            {/* Scroll hint - Right */}
-                            <div className="absolute w-14 h-14 right-0 rounded-full bg-gradient-to-l from-white/90 dark:from-gray-900/90 to-transparent z-10 pointer-events-none" />
-                        </div>
+                    <HorizontalScrollWithArrows
+                        containerClassName="no-scrollbar flex items-center shadow-xl shadow-gray-200/40 dark:shadow-black/30 w-full justify-between"
+                        scrollAreaClassName="flex pl-8 pr-8 items-center gap-1.5 overflow-x-auto no-scrollbar"
+                        scrollAmount={100}
+                        arrowSize={14}
+                        leftArrowButtonClassName="absolute z-20 left-0 p-4 h-full flex items-center bg-gradient-to-r from-gray-100/90 dark:from-gray-950/90 to-transparent border-none transition-all active:scale-95 pointer-events-auto"
+                        rightArrowButtonClassName="absolute z-20 right-0 p-4 h-full flex items-center bg-gradient-to-l from-gray-100/90 dark:from-gray-950/90 to-transparent border-none transition-all active:scale-95 pointer-events-auto"
+                        arrowIconClassName="text-gray-700 dark:text-gray-300 drop-shadow-sm"
+                    >
+                        {/* Tools Section (Horizontal Scroll with Arrows) */}
+                        <HorizontalScrollWithArrows
+                            containerClassName="glass rounded-full p-2 pl-0 pr-0 group flex items-center justify-center w-[200px] shrink-0"
+                            scrollAreaClassName="flex gap-1 rounded-full overflow-x-auto snap-x snap-mandatory px-2 no-scrollbar"
+                            scrollAmount={100}
+                            arrowSize={14}
+                        >
+                            {TOOLS.map((tool) => (
+                                <button
+                                    key={tool.id}
+                                    onClick={() => setActiveTool(tool.id as ToolType)}
+                                    className={`relative p-3 rounded-full flex items-center justify-center transition-all active:scale-90 snap-center shrink-0 ${activeTool === tool.id
+                                        ? 'text-white shadow-md shadow-primary-500/30'
+                                        : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                                        }`}
+                                    aria-label={`${tool.title} (${tool.shortcut})`}
+                                >
+                                    {activeTool === tool.id && (
+                                        <motion.div
+                                            layoutId="activeToolMobile"
+                                            className="absolute inset-0 bg-primary-600 rounded-full"
+                                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                        />
+                                    )}
+                                    <span className="relative z-10">
+                                        <tool.icon size={20} className={activeTool === tool.id ? 'stroke-[2.5px]' : ''} />
+                                    </span>
+                                </button>
+                            ))}
+                        </HorizontalScrollWithArrows>
 
                         <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 shrink-0 mx-1"></div>
+
+                        {/* Rest of Toolbar (Horizontal Scroll with Arrows) */}
 
                         {/* Change Eye Side */}
                         <div className='flex items-center gap-1 shrink-0'>
@@ -98,11 +109,21 @@ export const MobileToolbar: React.FC<ToolbarProps> = ({
                                 {eyeSide}
                             </button>
                         </div>
+                        {/* Flip */}
+                        <div className='flex items-center gap-1 shrink-0'>
+                            <button
+                                onClick={() => toggleInverted()}
+                                className="px-2 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg font-bold border border-gray-200 dark:border-gray-700 active:scale-95 transition-transform uppercase tracking-wider"
+                            >
+                                {/*isInverted ? 'Inv' : 'Std'*/}
+                                <FlipVertical2 size={20} />
+                            </button>
+                        </div>
 
                         <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 shrink-0 mx-1"></div>
 
                         {/* Active Color (Larger touch target) */}
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 shrink-0">
                             {(() => {
                                 const availableColors = Object.keys(MEDICAL_COLORS) as ColorCode[];
                                 const colorsToDisplay: ColorCode[] = [];
@@ -151,7 +172,7 @@ export const MobileToolbar: React.FC<ToolbarProps> = ({
                         <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 shrink-0 mx-1"></div>
 
                         {/* Undo/Redo (Larger touch targets) */}
-                        <div className="flex gap-0.5 shrink-0">
+                        <div className="flex glass rounded-full gap-0.5 shrink-0">
                             <button
                                 onClick={onUndo}
                                 className="p-3 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 active:scale-90 transition-transform"
@@ -166,10 +187,18 @@ export const MobileToolbar: React.FC<ToolbarProps> = ({
                             >
                                 <Redo size={20} />
                             </button>
+                            <button
+                                onClick={() => setShowSettingsMobile(true)}
+                                className="p-3 bg-indigo-800 dark:bg-indigo-900 rounded-full flex items-center justify-center transition-all shrink-0 hover:bg-gray-700 text-gray-300"
+                                aria-label="Open settings"
+                            >
+                                <Settings size={20} />
+                            </button>
                         </div>
-                    </div>
+                    </HorizontalScrollWithArrows>
+
                 </div>
-            </div>
+            </div >
 
             {/* Mobile Menu Overlay - Bottom Sheet (Tools mainly) */}
             <AnimatePresence>
