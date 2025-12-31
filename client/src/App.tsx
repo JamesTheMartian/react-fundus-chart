@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Settings } from 'lucide-react';
+import { Settings, Save, Share2, Users } from 'lucide-react';
 
 import { FundusCanvas } from './components/canvas/FundusCanvas';
 import type { FundusCanvasRef } from './components/canvas/FundusCanvas';
@@ -14,8 +14,21 @@ import { ToastProvider, useToast } from './components/ui/Toast';
 import { ConfirmDialog } from './components/modals/ConfirmDialog';
 import { KeyboardShortcutsModal } from './components/modals/KeyboardShortcutsModal';
 import { SettingsModal } from './components/modals/SettingsModal';
+import { DeveloperSettingsModal } from './components/modals/DeveloperSettingsModal';
 import { useDarkMode } from './hooks/useDarkMode';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+
+// New imports for auth and data management
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { LoginModal } from './components/modals/LoginModal';
+import { SaveChartModal } from './components/modals/SaveChartModal';
+import { ChartsModal } from './components/modals/ChartsModal';
+import { ShareModal } from './components/modals/ShareModal';
+import { PatientsListModal } from './components/modals/PatientsListModal';
+import { UserMenu } from './components/ui/UserMenu';
+import { AutoSaveIndicator } from './components/ui/AutoSaveIndicator';
+import { useAutoSave, loadGuestChart, clearGuestChart } from './hooks/useAutoSave';
+import { charts as chartsApi } from './api/client';
 
 import type { ColorCode, ToolType, EyeSide, PathologyType, FundusElement, GraphicsQuality } from './utils/types';
 import { PATHOLOGY_PRESETS } from './utils/types';
@@ -48,8 +61,8 @@ function AppContent() {
   const [isProMode, setIsProMode] = useState(false);
   const [showSettingsMobile, setShowSettingsMobile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showDevSettings, setShowDevSettings] = useState(false);
   const [graphicsQuality, setGraphicsQualityState] = useState<GraphicsQuality>(() => {
-    // Load from localStorage or default to 'high'
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem(GRAPHICS_QUALITY_KEY) as GraphicsQuality | null;
       if (stored && ['low', 'medium', 'high'].includes(stored)) {
@@ -59,7 +72,16 @@ function AppContent() {
     return 'high';
   });
 
-  // Wrapper to persist graphics quality to localStorage
+  // New state for auth and data management
+  const [showLogin, setShowLogin] = useState(false);
+  const [showSaveChart, setShowSaveChart] = useState(false);
+  const [showCharts, setShowCharts] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [showPatients, setShowPatients] = useState(false);
+  const [currentChartId, setCurrentChartId] = useState<string | null>(null);
+  const [currentChartName, setCurrentChartName] = useState('Untitled Chart');
+  const [currentPatientId, setCurrentPatientId] = useState<string | undefined>();
+
   const setGraphicsQuality = (quality: GraphicsQuality) => {
     setGraphicsQualityState(quality);
     localStorage.setItem(GRAPHICS_QUALITY_KEY, quality);
@@ -68,13 +90,120 @@ function AppContent() {
   const canvasRef = useRef<FundusCanvasRef>(null);
   const { showToast } = useToast();
   const { isDark, toggleDarkMode } = useDarkMode();
+  const { isAuthenticated } = useAuth();
+
+  // Auto-save hook
+  const { status: autoSaveStatus, lastSaved: autoSaveLastSaved } = useAutoSave({
+    elements: currentElements,
+    eyeSide,
+    chartId: currentChartId,
+    chartName: currentChartName,
+    patientId: currentPatientId,
+    debounceMs: 2000,
+    enabled: currentElements.length > 0,
+  });
+
+  // Load guest chart on mount (if not authenticated)
+  useEffect(() => {
+    if (!isAuthenticated) {
+      const guestChart = loadGuestChart();
+      if (guestChart && guestChart.elements.length > 0) {
+        // Load elements into canvas
+        setCurrentElements(guestChart.elements);
+        setEyeSide(guestChart.eyeSide as EyeSide);
+        showToast('Restored your previous drawing', 'info');
+      }
+    }
+  }, [isAuthenticated]);
+
+  // Check URL for share or chart ID
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const shareId = params.get('share');
+    const chartId = params.get('chart');
+
+    if (shareId) {
+      loadSharedChart(shareId);
+    } else if (chartId && isAuthenticated) {
+      loadChart(chartId);
+    }
+  }, [isAuthenticated]);
+
+  const loadSharedChart = async (shareId: string) => {
+    try {
+      const chart = await chartsApi.getByShareId(shareId);
+      if (chart) {
+        setCurrentElements(chart.elements);
+        setEyeSide(chart.eyeSide);
+        setCurrentChartName(chart.name);
+        showToast(`Loaded shared chart: ${chart.name}`, 'success');
+      } else {
+        showToast('Shared chart not found', 'error');
+      }
+    } catch (error) {
+      console.error('Failed to load shared chart:', error);
+      showToast('Failed to load shared chart', 'error');
+    }
+  };
+
+  const loadChart = async (chartId: string) => {
+    try {
+      const chart = await chartsApi.get(chartId);
+      if (chart) {
+        setCurrentElements(chart.elements);
+        setEyeSide(chart.eyeSide);
+        setCurrentChartId(chart.id);
+        setCurrentChartName(chart.name);
+        setCurrentPatientId(chart.patientId);
+        showToast(`Loaded chart: ${chart.name}`, 'success');
+      }
+    } catch (error) {
+      console.error('Failed to load chart:', error);
+      showToast('Failed to load chart', 'error');
+    }
+  };
+
+  const handleSaveChart = async (name: string, patientId?: string) => {
+    try {
+      const chart = await chartsApi.save({
+        id: currentChartId || undefined,
+        name,
+        eyeSide,
+        elements: currentElements,
+        patientId,
+      });
+      setCurrentChartId(chart.id);
+      setCurrentChartName(chart.name);
+      setCurrentPatientId(patientId);
+
+      // Clear guest chart if we just saved as authenticated user
+      if (isAuthenticated) {
+        clearGuestChart();
+      }
+
+      showToast('Chart saved successfully!', 'success');
+    } catch (error) {
+      console.error('Failed to save chart:', error);
+      throw error;
+    }
+  };
+
+  const handleNewChart = () => {
+    setCurrentElements([]);
+    setCurrentChartId(null);
+    setCurrentChartName('Untitled Chart');
+    setCurrentPatientId(undefined);
+    if (canvasRef.current) {
+      canvasRef.current.clear();
+    }
+    showToast('Created new chart', 'info');
+  };
 
   const handleDownload = () => {
     if (canvasRef.current) {
       canvasRef.current.exportImage();
       showToast('Image downloaded successfully!', 'success');
 
-      // Check if user has opted out of feedback
       const hasOptedOut = localStorage.getItem('feedback_opt_out');
       if (!hasOptedOut) {
         setTimeout(() => {
@@ -109,7 +238,6 @@ function AppContent() {
   };
 
   const handle3DView = () => {
-    // Toggle 3D view
     if (show3D) {
       setShow3D(false);
       return;
@@ -175,8 +303,21 @@ function AppContent() {
     onShowShortcuts: () => setShowShortcuts(true),
     onToggleDarkMode: toggleDarkMode,
     setActiveTool,
-    disabled: show3D || showAI || showLegend || showConfirmClear || showShortcuts,
+    disabled: show3D || showAI || showLegend || showConfirmClear || showShortcuts || showLogin || showSaveChart || showCharts || showShare || showPatients,
   });
+
+  // Common toolbar props for new features
+  const dataManagementProps = {
+    onLoginClick: () => setShowLogin(true),
+    onSaveChart: () => setShowSaveChart(true),
+    onOpenCharts: () => setShowCharts(true),
+    onOpenPatients: () => setShowPatients(true),
+    onShareChart: () => setShowShare(true),
+    autoSaveStatus,
+    autoSaveLastSaved,
+    currentChartName,
+    isDark,
+  };
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-gray-100 dark:bg-gray-950 flex flex-col lg:flex-row font-sans text-gray-900 dark:text-gray-50 transition-colors duration-200">
@@ -193,42 +334,88 @@ function AppContent() {
           <span className="text-[10px] text-gray-400 font-mono">v{APP_CONFIG.version}</span>
         </div>
         <div className="flex items-center gap-1.5">
+          {/* Auto-save indicator */}
+          <AutoSaveIndicator status={autoSaveStatus} lastSaved={autoSaveLastSaved} isDark={isDark} compact />
+
+          {/* User menu */}
+          <UserMenu
+            onLoginClick={() => setShowLogin(true)}
+            onChartsClick={() => setShowCharts(true)}
+            onPatientsClick={() => setShowPatients(true)}
+            isDark={isDark}
+            compact
+          />
+
           {/* 3D View Button */}
           <button
             onClick={handle3DView}
             className="flex items-center gap-1 px-2 py-1.5 bg-primary-50 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 rounded-lg text-[10px] font-bold border border-primary-100 dark:border-primary-500/30 active:scale-95 transition-transform uppercase tracking-wider"
           >
-            3D View
-          </button>
-          <button
-            onClick={() => setIsInverted(!isInverted)}
-            className="px-2 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg text-[10px] font-bold border border-gray-200 dark:border-gray-700 active:scale-95 transition-transform uppercase tracking-wider"
-          >
-            {isInverted ? 'Inv' : 'Std'}
+            3D
           </button>
         </div>
       </header>
 
       {/* Left Sidebar - Toolbar */}
       <aside className="hidden lg:flex flex-col w-80 h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 z-10 shrink-0 overflow-y-auto shadow-sm transition-colors">
-        <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-          <div className="flex flex-col gap-0.5">
-            <h1 className="text-lg font-bold text-gray-900 dark:text-gray-50 tracking-tight">{APP_CONFIG.name}</h1>
-            <p className="text-xs font-medium text-primary-600 dark:text-primary-400 uppercase tracking-widest flex items-center gap-1">
-              Studio
-              {isProMode && <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary-600 text-white shadow-sm">Pro</span>}
-            </p>
+        <div className="p-5 border-b border-gray-100 dark:border-gray-800">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-col gap-0.5">
+              <h1 className="text-lg font-bold text-gray-900 dark:text-gray-50 tracking-tight">{APP_CONFIG.name}</h1>
+              <p className="text-xs font-medium text-primary-600 dark:text-primary-400 uppercase tracking-widest flex items-center gap-1">
+                Studio
+                {isProMode && <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary-600 text-white shadow-sm">Pro</span>}
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <p className="text-[10px] text-gray-400 mt-0.5 font-mono">v{APP_CONFIG.version}</p>
+              <button
+                onClick={() => setShowSettings(true)}
+                className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                title="Settings"
+              >
+                <Settings size={16} />
+              </button>
+            </div>
           </div>
-          {/* Settings Button - Desktop */}
-          <div className="flex items-center gap-1.5">
-            <p className="text-[10px] text-gray-400 mt-0.5 font-mono">v{APP_CONFIG.version}</p>
-            <button
-              onClick={() => setShowSettings(true)}
-              className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              title="Settings"
-            >
-              <Settings size={16} />
-            </button>
+
+          {/* User & Data Management Row */}
+          <div className="flex flex-col gap-3">
+            <UserMenu
+              onLoginClick={() => setShowLogin(true)}
+              onChartsClick={() => setShowCharts(true)}
+              onPatientsClick={() => setShowPatients(true)}
+              onSettingsClick={() => setShowSettings(true)}
+              isDark={isDark}
+            />
+            <div className="flex items-center justify-between gap-1 w-full">
+              <button
+                onClick={() => setShowSaveChart(true)}
+                className={`flex-1 flex justify-center p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-gray-800 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
+                title="Save Chart"
+              >
+                <Save size={18} />
+              </button>
+              <button
+                onClick={() => setShowShare(true)}
+                className={`flex-1 flex justify-center p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-gray-800 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
+                title="Share"
+              >
+                <Share2 size={18} />
+              </button>
+              <button
+                onClick={() => setShowPatients(true)}
+                className={`flex-1 flex justify-center p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-gray-800 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
+                title="Patients"
+              >
+                <Users size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* Auto-save indicator */}
+          <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+            <AutoSaveIndicator status={autoSaveStatus} lastSaved={autoSaveLastSaved} isDark={isDark} />
           </div>
         </div>
         <Toolbar
@@ -259,6 +446,7 @@ function AppContent() {
           isProMode={isProMode}
           setShowSettings={setShowSettings}
           setShowSettingsMobile={setShowSettingsMobile}
+          {...dataManagementProps}
         />
       </aside>
 
@@ -303,6 +491,8 @@ function AppContent() {
           <span>{eyeSide}</span>
           <span className="w-px h-4 bg-gray-300 dark:bg-gray-600"></span>
           <span>{isInverted ? 'Inverted' : 'Standard'}</span>
+          <span className="w-px h-4 bg-gray-300 dark:bg-gray-600"></span>
+          <span className="truncate max-w-[150px]">{currentChartName}</span>
         </div>
       </main>
 
@@ -347,11 +537,11 @@ function AppContent() {
           onShowLegend={() => setShowLegend(true)}
           vesselOpacity={vesselOpacity}
           setVesselOpacity={setVesselOpacity}
-
           variant="mobile"
           isProMode={isProMode}
           setShowSettingsMobile={setShowSettingsMobile}
           setShowSettings={setShowSettings}
+          {...dataManagementProps}
         />
       </div>
 
@@ -419,20 +609,72 @@ function AppContent() {
           setShowSettingsMobile(false);
           setShowShortcuts(true);
         }}
+        onOpenDevSettings={() => {
+          setShowSettings(false);
+          setShowSettingsMobile(false);
+          setShowDevSettings(true);
+        }}
         graphicsQuality={graphicsQuality}
         setGraphicsQuality={setGraphicsQuality}
+      />
+
+      <DeveloperSettingsModal 
+        isOpen={showDevSettings}
+        onClose={() => setShowDevSettings(false)}
+        isDark={isDark}
+      />
+
+      {/* New Auth & Data Modals */}
+      <LoginModal
+        isOpen={showLogin}
+        onClose={() => setShowLogin(false)}
+        isDark={isDark}
+      />
+
+      <SaveChartModal
+        isOpen={showSaveChart}
+        onClose={() => setShowSaveChart(false)}
+        onSave={handleSaveChart}
+        isDark={isDark}
+        initialName={currentChartName}
+        initialPatientId={currentPatientId}
+      />
+
+      <ChartsModal
+        isOpen={showCharts}
+        onClose={() => setShowCharts(false)}
+        onOpenChart={loadChart}
+        onNewChart={handleNewChart}
+        isDark={isDark}
+      />
+
+      <ShareModal
+        isOpen={showShare}
+        onClose={() => setShowShare(false)}
+        chartId={currentChartId}
+        chartName={currentChartName}
+        isDark={isDark}
+      />
+
+      <PatientsListModal
+        isOpen={showPatients}
+        onClose={() => setShowPatients(false)}
+        onOpenChart={loadChart}
+        isDark={isDark}
       />
     </div>
   );
 }
 
 // =================================================================
-// App Wrapper with Toast Provider
+// App Wrapper with Providers
 // =================================================================
 function App() {
   return (
     <ToastProvider>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </ToastProvider>
   );
 }

@@ -1,5 +1,6 @@
 import { Pen, Brush, Grid, Eraser, PaintBucket, MousePointer } from 'lucide-react';
 import type { ColorCode, ToolType, EyeSide, PathologyType } from '../../utils/types';
+import type { AutoSaveState } from '../../api/types';
 
 export interface ToolbarProps {
     activeColor: ColorCode;
@@ -29,6 +30,16 @@ export interface ToolbarProps {
     isProMode?: boolean;
     setShowSettingsMobile: (show: boolean) => void;
     setShowSettings: (show: boolean) => void;
+    // New: Auth & Data Management
+    onLoginClick: () => void;
+    onSaveChart: () => void;
+    onOpenCharts: () => void;
+    onOpenPatients: () => void;
+    onShareChart: () => void;
+    autoSaveStatus: AutoSaveState['status'];
+    autoSaveLastSaved: string | null;
+    currentChartName: string;
+    isDark: boolean;
 }
 
 export const TOOLS = [

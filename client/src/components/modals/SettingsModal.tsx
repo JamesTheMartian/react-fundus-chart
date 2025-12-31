@@ -20,6 +20,7 @@ interface SettingsModalProps {
     isProMode: boolean;
     setIsProMode: (isPro: boolean) => void;
     onShowShortcuts: () => void;
+    onOpenDevSettings: () => void;
     graphicsQuality: GraphicsQuality;
     setGraphicsQuality: (quality: GraphicsQuality) => void;
 }
@@ -32,6 +33,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     isProMode,
     setIsProMode,
     onShowShortcuts,
+    onOpenDevSettings,
     graphicsQuality,
     setGraphicsQuality,
 }) => {
@@ -164,7 +166,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             </div>
                         </section>
 
+                        {/* Advanced Section */}
+                        <section className="space-y-3">
+                            <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Advanced</h3>
+                            <button
+                                onClick={onOpenDevSettings}
+                                className="w-full flex items-center justify-between p-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all text-left"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                                        <Cpu size={18} />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Developer Settings</span>
+                                        <span className="text-xs text-gray-500 dark:text-gray-400">Configure API & Debugging</span>
+                                    </div>
+                                </div>
+                                <ExternalLink size={14} className="text-gray-400" />
+                            </button>
+                        </section>
+
                         {/* Help & About */}
+
+
                         <section className="space-y-3">
                             <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Help & About</h3>
 
