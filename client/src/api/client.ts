@@ -197,7 +197,7 @@ export const charts = {
             return mockStore.getChartByShareId(shareId);
         }
         try {
-            return await fetchWithAuth<Chart>(`/shared/${shareId}`);
+            return await fetchWithAuth<Chart>(`/charts/shared/${shareId}`);
         } catch {
             return null;
         }
