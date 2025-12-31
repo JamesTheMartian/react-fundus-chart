@@ -20,7 +20,7 @@ const port = process.env.PORT || 3000;
 // =================================================================
 
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: true, // Allow any origin (reflects the request origin)
     credentials: true
 }));
 
@@ -79,7 +79,7 @@ async function start() {
     // Initialize database
     await initDatabase();
 
-    app.listen(port, () => {
+    app.listen(Number(port), '0.0.0.0', () => {
         console.log('='.repeat(50));
         console.log(`Fundus Chart API Server`);
         console.log(`Running at: http://localhost:${port}`);

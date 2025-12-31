@@ -48,7 +48,11 @@ export function ShareModal({
 
         try {
             const response = await chartsApi.createShareLink(chartId);
-            setShareUrl(response.shareUrl);
+            // Construct URL client-side to respect current host (IP vs localhost)
+            const origin = window.location.origin;
+            const path = window.location.pathname;
+            const url = `${origin}${path}?share=${response.shareId}`;
+            setShareUrl(url);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to generate share link');
         } finally {

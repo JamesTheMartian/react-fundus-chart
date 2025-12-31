@@ -92,6 +92,7 @@ function AppContent() {
   const { showToast } = useToast();
   const { isDark, toggleDarkMode } = useDarkMode();
   const { isAuthenticated } = useAuth();
+  const [isSharedView, setIsSharedView] = useState(false);
 
   // Auto-save hook
   const { status: autoSaveStatus, lastSaved: autoSaveLastSaved } = useAutoSave({
@@ -101,7 +102,7 @@ function AppContent() {
     chartName: currentChartName,
     patientId: currentPatientId,
     debounceMs: 2000,
-    enabled: currentElements.length > 0,
+    enabled: currentElements.length > 0 && !isSharedView,
   });
 
   // Load guest chart on mount (if not authenticated)
@@ -144,6 +145,7 @@ function AppContent() {
         setCurrentElements(chart.elements);
         setEyeSide(chart.eyeSide);
         setCurrentChartName(chart.name);
+        setIsSharedView(true);
         if (canvasRef.current) {
             canvasRef.current.loadElements(chart.elements);
         }
@@ -167,6 +169,7 @@ function AppContent() {
         setCurrentChartId(chart.id);
         setCurrentChartName(chart.name);
         setCurrentPatientId(chart.patientId);
+        setIsSharedView(false);
         if (canvasRef.current) {
             canvasRef.current.loadElements(chart.elements);
         }
@@ -190,6 +193,7 @@ function AppContent() {
       setCurrentChartId(chart.id);
       setCurrentChartName(chart.name);
       setCurrentPatientId(patientId);
+      setIsSharedView(false);
 
       // Clear guest chart if we just saved as authenticated user
       if (isAuthenticated) {
@@ -208,6 +212,7 @@ function AppContent() {
     setCurrentChartId(null);
     setCurrentChartName('Untitled Chart');
     setCurrentPatientId(undefined);
+    setIsSharedView(false);
     if (canvasRef.current) {
       canvasRef.current.clear();
     }
