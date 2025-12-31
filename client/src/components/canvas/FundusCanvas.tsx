@@ -13,6 +13,7 @@ export interface FundusCanvasRef {
     clear: () => void;
     updateElement: (id: string, updates: Partial<FundusElement>) => void;
     deleteElement: (id: string) => void;
+    loadElements: (elements: FundusElement[]) => void;
 }
 
 interface FundusCanvasProps {
@@ -524,6 +525,10 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
         deleteElement: (id: string) => {
             setElements(prev => prev.filter(el => el.id !== id));
             if (selectedElementId === id) setSelectedElementId(null);
+        },
+        loadElements: (newElements: FundusElement[]) => {
+            setElements(newElements);
+            setRedoStack([]);
         }
     }));
 

@@ -88,6 +88,7 @@ function AppContent() {
   };
 
   const canvasRef = useRef<FundusCanvasRef>(null);
+  const sharedChartLoadedRef = useRef(false);
   const { showToast } = useToast();
   const { isDark, toggleDarkMode } = useDarkMode();
   const { isAuthenticated } = useAuth();
@@ -104,6 +105,7 @@ function AppContent() {
   });
 
   // Load guest chart on mount (if not authenticated)
+  // Load guest chart on mount (if not authenticated)
   useEffect(() => {
     if (!isAuthenticated) {
       const guestChart = loadGuestChart();
@@ -111,6 +113,9 @@ function AppContent() {
         // Load elements into canvas
         setCurrentElements(guestChart.elements);
         setEyeSide(guestChart.eyeSide as EyeSide);
+        if (canvasRef.current) {
+            canvasRef.current.loadElements(guestChart.elements);
+        }
         showToast('Restored your previous drawing', 'info');
       }
     }
@@ -123,7 +128,10 @@ function AppContent() {
     const chartId = params.get('chart');
 
     if (shareId) {
-      loadSharedChart(shareId);
+      if (!sharedChartLoadedRef.current) {
+        sharedChartLoadedRef.current = true;
+        loadSharedChart(shareId);
+      }
     } else if (chartId && isAuthenticated) {
       loadChart(chartId);
     }
@@ -136,7 +144,11 @@ function AppContent() {
         setCurrentElements(chart.elements);
         setEyeSide(chart.eyeSide);
         setCurrentChartName(chart.name);
+        if (canvasRef.current) {
+            canvasRef.current.loadElements(chart.elements);
+        }
         showToast(`Loaded shared chart: ${chart.name}`, 'success');
+        console.log(chart)
       } else {
         showToast('Shared chart not found', 'error');
       }
@@ -155,6 +167,9 @@ function AppContent() {
         setCurrentChartId(chart.id);
         setCurrentChartName(chart.name);
         setCurrentPatientId(chart.patientId);
+        if (canvasRef.current) {
+            canvasRef.current.loadElements(chart.elements);
+        }
         showToast(`Loaded chart: ${chart.name}`, 'success');
       }
     } catch (error) {
