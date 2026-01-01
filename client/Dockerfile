@@ -1,14 +1,14 @@
 # Client Dockerfile
 # Stage 1: Build
-FROM node:20-alpine as builder
+FROM node:20-slim as builder
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies (fresh resolution to avoid arch mismatch)
+RUN rm -f package-lock.json && npm install
 
 # Copy source code
 COPY . .
