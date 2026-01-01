@@ -10,7 +10,7 @@ const packageJson = JSON.parse(
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/react-fundus-chart/',
+  base: process.env.VITE_BASE_PATH || '/react-fundus-chart/',
   define: {
     '__APP_VERSION__': JSON.stringify(packageJson.version)
   },
