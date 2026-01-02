@@ -1,5 +1,16 @@
+# AWS Dockerignore - for production builds using pre-built dist
+# We NEED the dist folder for AWS builds
+
 node_modules
-dist
-build
 .env.local
 .env
+src
+public
+.git
+.gitignore
+*.md
+tsconfig.json
+vite.config.ts
+tailwind.config.ts
+postcss.config.js
+eslint.config.js
