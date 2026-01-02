@@ -129,6 +129,7 @@ The build process sets these environment variables:
 ### Server
 - `NODE_ENV=production` - Production mode
 - `PORT=3000` - Server port
+- `ENCRYPTION_KEY` - **Critical**: 64-character hex string for database encryption. Must be kept secret.
 
 ## Updating Your Application
 
