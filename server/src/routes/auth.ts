@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { queryOne, execute } from '../database';
 import { generateToken, requireAuth, type AuthRequest } from '../middleware/auth';
+import { logAudit, AuditAction } from '../utils/audit';
 
 const router = Router();
 
@@ -56,6 +57,9 @@ router.post('/register', (req, res: Response) => {
         [id, username, passwordHash, name, createdAt]
     );
 
+    // Log audit
+    logAudit(id, AuditAction.USER_REGISTER, 'user', id);
+
     // Generate token
     const token = generateToken({ userId: id, username });
 
@@ -92,6 +96,9 @@ router.post('/login', (req, res: Response) => {
         res.status(401).json({ error: 'Invalid username or password' });
         return;
     }
+
+    // Log audit
+    logAudit(user.id, AuditAction.USER_LOGIN, 'user', user.id);
 
     // Generate token
     const token = generateToken({ userId: user.id, username: user.username });
@@ -132,7 +139,10 @@ router.get('/me', requireAuth, (req: AuthRequest, res: Response) => {
 // =================================================================
 // POST /api/auth/logout
 // =================================================================
-router.post('/logout', (_req, res: Response) => {
+router.post('/logout', requireAuth, (req: AuthRequest, res: Response) => {
+    // Log audit
+    logAudit(req.user!.userId, AuditAction.USER_LOGOUT, 'user', req.user!.userId);
+
     res.json({ message: 'Logged out successfully' });
 });
 

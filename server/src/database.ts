@@ -73,7 +73,21 @@ export async function initDatabase(): Promise<SqlJsDatabase> {
         CREATE INDEX IF NOT EXISTS idx_charts_patient_id ON charts(patient_id);
         CREATE INDEX IF NOT EXISTS idx_charts_share_id ON charts(share_id);
         CREATE INDEX IF NOT EXISTS idx_patients_user_id ON patients(user_id);
+
+        -- Audit Logs table
+        CREATE TABLE IF NOT EXISTS audit_logs (
+            id TEXT PRIMARY KEY,
+            user_id TEXT,
+            action TEXT NOT NULL,
+            resource TEXT NOT NULL,
+            resource_id TEXT,
+            details TEXT,
+            ip_address TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
     `);
+
 
     // Seed demo user if not exists
     const demoUser = db.exec("SELECT id FROM users WHERE username = 'demo'");
