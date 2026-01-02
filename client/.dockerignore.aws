@@ -5,9 +5,12 @@ node_modules
 .env.local
 .env
 src
+public
 .git
 .gitignore
 *.md
 tsconfig.json
-ts-node-dev
-data/*.db
+vite.config.ts
+tailwind.config.ts
+postcss.config.js
+eslint.config.js

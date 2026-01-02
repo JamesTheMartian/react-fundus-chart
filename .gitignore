@@ -25,3 +25,6 @@ dist-ssr
 .agent/*
 
 fundus.db
+
+# AWS build artifacts
+aws-build/

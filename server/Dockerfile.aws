@@ -1,0 +1,39 @@
+# AWS Production Dockerfile for Server
+# This Dockerfile expects a pre-built dist folder to exist
+# Build the dist folder locally with: make aws-build-server
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install ONLY production dependencies (no package-lock.json, so using install instead of ci)
+RUN npm install --omit=dev
+
+# Copy pre-built dist folder from local machine
+COPY dist ./dist
+
+# Copy data directory structure if needed
+RUN mkdir -p /app/data
+
+# Set production environment
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Run as non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001 && \
+    chown -R nodejs:nodejs /app
+
+USER nodejs
+
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" || exit 1
+
+# Use node directly for faster startup (instead of npm start)
+CMD ["node", "dist/index.js"]

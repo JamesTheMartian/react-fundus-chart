@@ -20,31 +20,41 @@ A modern, interactive Retinal Fundus Charting application for ophthalmologists a
 
 ```
 react-fundus-chart/
-├── package.json           # Monorepo root (npm workspaces)
-├── Makefile               # Build/dev shortcuts
+├── package.json              # Monorepo root (npm workspaces)
+├── Makefile                  # Build/dev shortcuts + AWS deployment automation
+├── docker-compose.yml        # Local Docker development setup
+├── docker-compose.aws.yml    # AWS production Docker configuration
+├── AWS_DEPLOYMENT.md         # Complete AWS deployment guide
 │
-├── client/                # React Frontend
+├── client/                   # React Frontend
+│   ├── Dockerfile            # Local development Docker build
+│   ├── Dockerfile.aws        # AWS production build (nginx:alpine)
+│   ├── Makefile              # Client-specific build commands
+│   ├── vite.config.ts        # Vite configuration with base path support
+│   │
 │   ├── src/
-│   │   ├── App.tsx        # Main app component (683 lines)
-│   │   ├── main.tsx       # Entry point
-│   │   ├── index.css      # Global styles
+│   │   ├── App.tsx           # Main app component
+│   │   ├── main.tsx          # Entry point
+│   │   ├── index.css         # Global styles
 │   │   │
-│   │   ├── api/           # API layer
-│   │   │   ├── client.ts  # Unified mock/real API client
-│   │   │   ├── config.ts  # API configuration
-│   │   │   ├── types.ts   # API type definitions
-│   │   │   └── mockStore.ts # In-browser mock storage
+│   │   ├── api/              # API layer
+│   │   │   ├── client.ts     # Unified mock/real API client
+│   │   │   ├── config.ts     # API configuration (USE_MOCK_API toggle)
+│   │   │   ├── types.ts      # API type definitions
+│   │   │   └── mockStore.ts  # In-browser mock storage
 │   │   │
 │   │   ├── components/
-│   │   │   ├── canvas/    # FundusCanvas (main drawing area)
-│   │   │   ├── toolbar/   # Tool buttons (pen, brush, eraser, etc.)
-│   │   │   ├── modals/    # 13 modals (Login, Save, Share, Patients, etc.)
-│   │   │   ├── ui/        # Reusable UI components
-│   │   │   ├── three-d/   # 3D visualization components
-│   │   │   └── LayerPanel.tsx  # Layer management
+│   │   │   ├── canvas/       # FundusCanvas (main drawing area)
+│   │   │   ├── toolbar/      # Tool buttons (desktop & mobile)
+│   │   │   │   ├── desktop/  # Desktop toolbar components
+│   │   │   │   └── mobile/   # Mobile toolbar components
+│   │   │   ├── modals/       # Modal dialogs (Login, Save, Share, etc.)
+│   │   │   ├── ui/           # Reusable UI components
+│   │   │   ├── three-d/      # 3D visualization components
+│   │   │   └── LayerPanel.tsx # Layer management
 │   │   │
 │   │   ├── contexts/
-│   │   │   └── AuthContext.tsx  # Authentication state
+│   │   │   └── AuthContext.tsx # Authentication state
 │   │   │
 │   │   ├── hooks/
 │   │   │   ├── useAutoSave.ts
@@ -57,24 +67,28 @@ react-fundus-chart/
 │   │   ├── data/
 │   │   │   └── colorLegend.ts
 │   │   │
-│   │   └── utils/
-│   │       ├── types.ts     # Core types (FundusElement, etc.)
-│   │       └── constants.ts # App constants
+│   │   ├── utils/
+│   │   │   ├── types.ts      # Core types (FundusElement, etc.)
+│   │   │   └── constants.ts  # App constants
+│   │   │
+│   │   └── assets/           # Static assets
 │   │
-│   └── public/textures/   # 3D shader textures
+│   └── public/textures/      # 3D shader textures
 │
-└── server/                # Express Backend
+└── server/                   # Express Backend
+    ├── Dockerfile            # Local development Docker build
+    ├── Dockerfile.aws        # AWS production build (node:20-alpine)
     ├── src/
-    │   ├── index.ts       # Server entry, route registration
-    │   ├── database.ts    # SQLite setup & helpers
+    │   ├── index.ts          # Server entry, route registration
+    │   ├── database.ts       # SQLite setup & helpers
     │   ├── routes/
-    │   │   ├── auth.ts    # /api/auth/* endpoints
-    │   │   ├── charts.ts  # /api/charts/* endpoints
-    │   │   └── patients.ts # /api/patients/* endpoints
+    │   │   ├── auth.ts       # /api/auth/* endpoints
+    │   │   ├── charts.ts     # /api/charts/* endpoints
+    │   │   └── patients.ts   # /api/patients/* endpoints
     │   ├── middleware/
-    │   │   └── auth.ts    # JWT middleware
-    │   └── types/
-    └── data/fundus.db     # SQLite database file
+    │   │   └── auth.ts       # JWT middleware
+    │   └── types/            # Type definitions
+    └── data/fundus.db        # SQLite database file
 ```
 
 ---
@@ -147,6 +161,91 @@ The app includes medical presets: `hemorrhage`, `vitreous_hemorrhage`, `tear`, `
 
 ---
 
+## AWS Deployment Workflow
+
+### Build Locally, Deploy to AWS
+
+This project uses an optimized deployment workflow designed for resource-constrained servers (e.g., AWS t3.nano):
+
+1. **Build locally** on your development machine (with sufficient resources)
+2. **Create optimized Docker images** with pre-built artifacts (no build steps on server)
+3. **Package images as tar.gz** for efficient transfer (~180MB total)
+4. **Transfer and deploy** to AWS EC2 without any compilation
+
+### Quick Deployment Commands
+
+```bash
+# Build everything for AWS deployment
+make aws              # Builds client + server, creates Docker images as tar.gz
+
+# Individual build targets
+make aws-client       # Build client image only
+make aws-server       # Build server image only
+make aws-build-client # Build client dist folder only
+make aws-build-server # Build server dist folder only
+
+# Testing locally before deployment
+make aws-load         # Load Docker images from tar.gz
+make aws-up           # Start containers locally
+make aws-down         # Stop containers
+
+# Cleanup
+make aws-clean        # Remove all AWS build artifacts
+```
+
+### Output Files
+
+The `make aws` command creates:
+- `aws-build/client-image.tar.gz` (~25-30MB) - Nginx-based static server
+- `aws-build/server-image.tar.gz` (~150-180MB) - Node.js API server
+
+### Deployment Steps
+
+1. Transfer files to server:
+   ```bash
+   scp aws-build/*.tar.gz user@server:/path/to/app/
+   scp docker-compose.aws.yml user@server:/path/to/app/
+   ```
+
+2. On the server:
+   ```bash
+   docker load < client-image.tar.gz
+   docker load < server-image.tar.gz
+   docker-compose -f docker-compose.aws.yml up -d
+   ```
+
+### Docker Optimizations
+
+**Client (Dockerfile.aws):**
+- Single-stage build with `nginx:alpine` (~25MB base)
+- Pre-built `dist` folder copied from local machine
+- No Node.js or build tools in image
+- Configured with API proxy, SPA routing, and caching
+- Health check endpoint at `/health`
+
+**Server (Dockerfile.aws):**
+- Production-only dependencies (`npm ci --only=production`)
+- Pre-built `dist` folder copied from local machine
+- No TypeScript or dev dependencies
+- Runs as non-root user for security
+- Direct `node` execution (faster than `npm start`)
+- Health check at `/api/health`
+
+### Build Environment Variables
+
+**Client Build:**
+- `VITE_BASE_PATH=/` - Application base path
+- `VITE_API_BASE_URL=/api` - API endpoint (proxied by Nginx)
+- `VITE_USE_MOCK_API=false` - Use real backend API
+
+**Server:**
+- `NODE_ENV=production` - Production mode
+- `PORT=3000` - Server port
+
+See [AWS_DEPLOYMENT.md](AWS_DEPLOYMENT.md) for complete deployment guide.
+
+---
+
 ## Database Schema
 
 ```sql
@@ -202,18 +301,63 @@ CREATE TABLE charts (
 
 ## Development Commands
 
+### Local Development
+
 ```bash
 # Install all dependencies
 npm install
 
 # Run client dev server (localhost:5173)
 npm run dev:client
+# or
+make dev
 
 # Run backend server (localhost:3000)
 npm run dev:server
+# or
+make dev-server
 
 # Build client for production
 npm run build:client
+# or
+make build
+
+# Lint client code
+make lint
+
+# Clean all node_modules and rebuild
+make clean
+```
+
+### AWS Deployment
+
+```bash
+# Build and package for AWS (recommended)
+make aws              # Builds both client and server, creates tar.gz files
+
+# Individual AWS build targets
+make aws-client       # Build client Docker image as tar.gz
+make aws-server       # Build server Docker image as tar.gz
+make aws-build-client # Build client dist folder only
+make aws-build-server # Build server dist folder only
+
+# Local testing of AWS builds
+make aws-load         # Load Docker images from tar.gz
+make aws-up           # Start containers with docker-compose.aws.yml
+make aws-down         # Stop AWS containers
+
+# Cleanup AWS artifacts
+make aws-clean        # Remove aws-build/ directory and images
+```
+
+### Version Management
+
+```bash
+make version-info     # Show current version and git tag
+make version-patch    # Bump patch version (0.0.x)
+make version-minor    # Bump minor version (0.x.0)
+make version-major    # Bump major version (x.0.0)
+make publish          # Push changes and tags to remote
 ```
 
 **Demo credentials:** `demo` / `demo`
@@ -222,9 +366,28 @@ npm run build:client
 
 ## Configuration
 
-### Client API Config (`client/src/api/config.ts`)
+### Client Configuration
+
+**API Config** (`client/src/api/config.ts`):
 - `USE_MOCK_API`: Toggle between mock store and real backend
 - `API_BASE_URL`: Backend URL (default: `http://localhost:3000/api`)
 
-### Graphics Quality
+**Vite Build Config** (`client/vite.config.ts`):
+- `VITE_BASE_PATH`: Application base path (default: `/react-fundus-chart/`, AWS: `/`)
+- `VITE_API_BASE_URL`: API endpoint URL
+- `VITE_USE_MOCK_API`: Enable/disable mock API
+
+**Graphics Quality**:
 Stored in localStorage under `graphics_quality` key. Options: `low`, `medium`, `high`.
+
+### Server Configuration
+
+**Environment Variables**:
+- `NODE_ENV`: Environment mode (`development` | `production`)
+- `PORT`: Server port (default: `3000`)
+- `JWT_SECRET`: Secret key for JWT tokens (auto-generated if not set)
+
+**Database**:
+- Location: `server/data/fundus.db`
+- Type: SQLite (via sql.js)
+- Persistence: File-based with in-memory operations
