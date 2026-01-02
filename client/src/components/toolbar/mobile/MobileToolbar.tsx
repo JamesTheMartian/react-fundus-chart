@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls, type PanInfo } from 'framer-motion';
 import { Undo, Redo, Eye, Download, Trash2, Settings, Sparkles, Palette, FlipVertical2 } from 'lucide-react';
 import { MEDICAL_COLORS, PATHOLOGY_PRESETS, type PathologyType, type ColorCode, type ToolType } from '../../../utils/types';
 import { type ToolbarProps, TOOLS } from '../ToolbarConstants';
@@ -30,6 +30,13 @@ export const MobileToolbar: React.FC<ToolbarProps> = ({
 }) => {
     const [showMobileMenu, setShowMobileMenu] = React.useState(false);
     const showBrushSlider = ['pen', 'brush', 'eraser'].includes(activeTool);
+    const dragControls = useDragControls();
+
+    const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+        if (info.offset.y > 100 || info.velocity.y > 500) {
+            setShowMobileMenu(false);
+        }
+    };
 
     return (
         <>
@@ -209,6 +216,12 @@ export const MobileToolbar: React.FC<ToolbarProps> = ({
                             onClick={() => setShowMobileMenu(false)}
                         >
                             <motion.div
+                                drag="y"
+                                dragControls={dragControls}
+                                dragListener={false}
+                                dragConstraints={{ top: 0, bottom: 0 }}
+                                dragElastic={{ top: 0, bottom: 0.5 }}
+                                onDragEnd={handleDragEnd}
                                 initial={{ y: "100%" }}
                                 animate={{ y: 0 }}
                                 exit={{ y: "100%" }}
@@ -217,7 +230,7 @@ export const MobileToolbar: React.FC<ToolbarProps> = ({
                                 onClick={e => e.stopPropagation()}
                             >
                                 {/* Drag Handle */}
-                                <div className="flex justify-center py-3">
+                                <div className="flex justify-center py-3 touch-none" onPointerDown={(e) => dragControls.start(e)}>
                                     <div className="w-10 h-1 bg-gray-300 dark:bg-gray-700 rounded-full" />
                                 </div>
 
