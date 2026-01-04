@@ -27,6 +27,7 @@ export const MobileToolbar: React.FC<ToolbarProps> = ({
     setVesselOpacity,
     setShowSettingsMobile,
     toggleInverted,
+    isProMode = false
 }) => {
     const [showMobileMenu, setShowMobileMenu] = React.useState(false);
     const showBrushSlider = ['pen', 'brush', 'eraser'].includes(activeTool);
@@ -370,14 +371,14 @@ export const MobileToolbar: React.FC<ToolbarProps> = ({
                                     </div>
 
                                     {/* Actions */}
-                                    <div className="grid grid-cols-1 gap-3">
+                                    {isProMode && (<div className="grid grid-cols-1 gap-3">
                                         <button
                                             onClick={onAnalyze}
                                             className="p-3.5 bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 rounded-xl text-sm font-medium flex items-center justify-center gap-2 active:scale-95 transition-transform"
                                         >
                                             <Sparkles size={18} /> Analyze
                                         </button>
-                                    </div>
+                                    </div>)}
 
                                     {/* Clear */}
                                     <button

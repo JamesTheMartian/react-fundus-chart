@@ -109,7 +109,7 @@ export function UserMenu({
                 {isOpen && (
                     <motion.div
                         className={`
-                            absolute left-0 top-full mt-2 w-full rounded-xl shadow-xl border z-50
+                            absolute -right-10 lg:left-0 top-full mt-2 w-64 lg:w-full rounded-xl shadow-xl border z-50
                             ${isDark ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}
                         `}
                         initial={{ opacity: 0, y: -10, scale: 0.95 }}
