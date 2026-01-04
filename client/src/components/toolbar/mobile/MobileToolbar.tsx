@@ -90,6 +90,25 @@ export const MobileToolbar: React.FC<ToolbarProps> = ({
                                 </span>
                             </button>
                         ))}
+                        <div className="relative group">
+                            <select
+                                value={activePathology}
+                                onChange={(e) => setActivePathology(e.target.value as PathologyType)}
+                                aria-label="Select Pathology Type"
+                                className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-medium text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-all appearance-none outline-none"
+                            >
+                                {(Object.keys(PATHOLOGY_PRESETS) as PathologyType[]).map((type) => (
+                                    <option key={type} value={type}>
+                                        {PATHOLOGY_PRESETS[type].label}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400 transition-colors">
+                                <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </div>
+                        </div>
                     </HorizontalScrollWithArrows>
 
                     <HorizontalScrollWithArrows
@@ -304,17 +323,24 @@ export const MobileToolbar: React.FC<ToolbarProps> = ({
                                     </div>
 
                                     {/* Pathology */}
-                                    <div>
-                                        <h4 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase mb-2">Pathology</h4>
+                                    <div className="relative group">
                                         <select
                                             value={activePathology}
                                             onChange={(e) => setActivePathology(e.target.value as PathologyType)}
-                                            className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300"
+                                            aria-label="Select Pathology Type"
+                                            className="w-full p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-all appearance-none outline-none"
                                         >
                                             {(Object.keys(PATHOLOGY_PRESETS) as PathologyType[]).map((type) => (
-                                                <option key={type} value={type}>{PATHOLOGY_PRESETS[type].label}</option>
+                                                <option key={type} value={type}>
+                                                    {PATHOLOGY_PRESETS[type].label}
+                                                </option>
                                             ))}
                                         </select>
+                                        <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400 transition-colors">
+                                            <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        </div>
                                     </div>
 
                                     {/* Brush Size */}
