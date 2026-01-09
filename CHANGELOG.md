@@ -1,3 +1,22 @@
+# [0.2.0](https://github.com/JamesTheMartian/react-fundus-chart/compare/v0.1.0...v0.2.0) (2026-01-09)
+
+
+### Bug Fixes
+
+* client version ([5f91192](https://github.com/JamesTheMartian/react-fundus-chart/commit/5f9119283fca49bb59677f57e8ccadf4c086e0c0))
+* made changes for aws for arm64 ([9c59b28](https://github.com/JamesTheMartian/react-fundus-chart/commit/9c59b28a50c25f986ca6b86b525006cc2dbfb2e8))
+* mobile UI fixes ([40ce58d](https://github.com/JamesTheMartian/react-fundus-chart/commit/40ce58d3d9914193dee45aef7691bc9833182174))
+* Update artifact path for deployment ([34f9f21](https://github.com/JamesTheMartian/react-fundus-chart/commit/34f9f21b978b670e5e8c70cb73b1287c001fd5e1))
+* version updater ([ff7356b](https://github.com/JamesTheMartian/react-fundus-chart/commit/ff7356bf9a9f304bbc46071c5033c7af35b26a25))
+
+
+### Features
+
+* added CHANGELOG ([406418b](https://github.com/JamesTheMartian/react-fundus-chart/commit/406418b62a2b0b4ad0e5d8fedd1d6c8fa3c82746))
+* added tutorial and onboarding ([1b539e2](https://github.com/JamesTheMartian/react-fundus-chart/commit/1b539e2db61c92e6807d8f553ff496bcf06f4e3e))
+
+
+
 # [0.1.0](https://github.com/JamesTheMartian/react-fundus-chart/compare/3a0d19b7b511f28a94fb0ab948220ebd799c2600...v0.1.0) (2026-01-02)
 
 
