@@ -2,6 +2,7 @@ version: "3.8"
 
 services:
   server:
+    platform: linux/arm64
     build:
       context: ./server
       dockerfile: Dockerfile.aws
@@ -31,6 +32,7 @@ services:
       start_period: 10s
 
   client:
+    platform: linux/arm64
     build:
       context: ./client
       dockerfile: Dockerfile.aws

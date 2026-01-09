@@ -2,7 +2,7 @@
 # This Dockerfile expects a pre-built dist folder to exist
 # Build the dist folder locally with: make aws-build-server
 
-FROM node:20-alpine
+FROM --platform=linux/arm64 node:20-alpine
 
 WORKDIR /app
 

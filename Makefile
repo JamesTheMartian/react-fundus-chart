@@ -66,9 +66,10 @@ aws-client: aws-build-client ## Build client image and save as tar.gz
 	@echo "Building client Docker image..."
 	@mkdir -p aws-build
 	@# Temporarily rename .dockerignore to allow dist folder
+	@whoami
 	@if [ -f client/.dockerignore ]; then mv client/.dockerignore client/.dockerignore.bak; fi
 	@if [ -f client/.dockerignore.aws ]; then cp client/.dockerignore.aws client/.dockerignore; fi
-	docker build -f client/Dockerfile.aws -t react-fundus-chart-client:aws ./client
+	docker build --pull --no-cache --platform linux/arm64 -f client/Dockerfile.aws -t react-fundus-chart-client:aws ./client
 	@# Restore original .dockerignore
 	@rm -f client/.dockerignore
 	@if [ -f client/.dockerignore.bak ]; then mv client/.dockerignore.bak client/.dockerignore; fi
@@ -82,7 +83,7 @@ aws-server: aws-build-server ## Build server image and save as tar.gz
 	@# Temporarily rename .dockerignore to allow dist folder
 	@if [ -f server/.dockerignore ]; then mv server/.dockerignore server/.dockerignore.bak; fi
 	@if [ -f server/.dockerignore.aws ]; then cp server/.dockerignore.aws server/.dockerignore; fi
-	docker build -f server/Dockerfile.aws -t react-fundus-chart-server:aws ./server
+	docker build --pull --no-cache --platform linux/arm64 -f server/Dockerfile.aws -t react-fundus-chart-server:aws ./server
 	@# Restore original .dockerignore
 	@rm -f server/.dockerignore
 	@if [ -f server/.dockerignore.bak ]; then mv server/.dockerignore.bak server/.dockerignore; fi
