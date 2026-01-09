@@ -49,12 +49,14 @@ version-bump:
 	echo "Syncing version $$VERSION to workspaces..."; \
 	npm pkg set version="$$VERSION" -w client; \
 	npm pkg set version="$$VERSION" -w server; \
-	git add package.json package-lock.json client/package.json server/package.json; \
+	echo "Generating changelog..."; \
+	npx conventional-changelog-cli -p angular -i CHANGELOG.md -s; \
+	git add package.json package-lock.json client/package.json server/package.json CHANGELOG.md; \
 	if [ -f client/package-lock.json ]; then git add client/package-lock.json; fi; \
 	if [ -f server/package-lock.json ]; then git add server/package-lock.json; fi; \
 	git commit -m "v$$VERSION"; \
 	git tag "v$$VERSION"
-	@echo "✓ Version bumped and synced to $$VERSION"
+	@echo "✓ Version bumped, changelog generated, and synced to $$VERSION"
 
 publish: ## Push changes and tags to remote
 	git push && git push --tags
