@@ -254,6 +254,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
     };
 
     const drawElement = (ctx: CanvasRenderingContext2D, element: FundusElement, inverted: boolean) => {
+        const alphaMod = !element.visible ? 0.1 : 1;
         if (element.type === 'stroke' && (!element.points || element.points.length < 2)) return;
 
         ctx.save();
@@ -285,10 +286,10 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
 
         // Vitreous Layer Handling
         if (element.layer === 'vitreous') {
-            ctx.globalAlpha = 0.4;
+            ctx.globalAlpha = 0.4 * alphaMod;
             ctx.filter = 'blur(4px)';
         } else {
-            ctx.globalAlpha = 1.0;
+            ctx.globalAlpha = 1.0 * alphaMod;
             ctx.filter = 'none';
         }
 
@@ -298,7 +299,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
             const isBrush = element.toolType === 'brush';
             if (isBrush) {
                 // For brush: draw at full opacity here, alpha is applied when compositing the buffer
-                ctx.globalAlpha = 1.0;
+                ctx.globalAlpha = 1.0 * alphaMod;
                 ctx.lineWidth = (width || 2) * 2;
             }
 
@@ -326,7 +327,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
                     ctx.stroke();
                 }
                 else if (element.toolType === 'fill') {
-                    ctx.globalAlpha = 0.5;
+                    ctx.globalAlpha = 0.5 * alphaMod;
                     ctx.fillStyle = MEDICAL_COLORS[element.color];
 
                     let currentPath: Point[] = [];
@@ -351,7 +352,7 @@ export const FundusCanvas = forwardRef<FundusCanvasRef, FundusCanvasProps>(({
                         }
                     }
                     drawFill(currentPath);
-                    ctx.globalAlpha = 1.0;
+                    ctx.globalAlpha = 1.0 * alphaMod;
                 }
                 else {
                     ctx.beginPath();

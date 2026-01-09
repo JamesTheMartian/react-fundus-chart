@@ -3,6 +3,7 @@ import { Canvas, useLoader } from '@react-three/fiber';
 import { OrbitControls, Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import type { FundusElement, EyeSide, Point, GraphicsQuality } from '../../utils/types';
+import { renderElementsToCanvas } from '../../utils/renderUtils';
 // import './ThreeDView.css'; // Removed for Tailwind migration
 
 import { Sun, Eye, FileText, Flashlight, Cloud, ScanLine, X, Tag } from 'lucide-react';
@@ -188,151 +189,30 @@ interface EyeModelProps {
     graphicsQuality: GraphicsQuality;
 }
 
-const EyeModel: React.FC<EyeModelProps> = ({ textureUrl, elements, detachmentHeight, eyeSide, viewMode, clippingPlanes, graphicsQuality }) => {
-    const texture = useLoader(THREE.TextureLoader, textureUrl);
+const EyeModel: React.FC<EyeModelProps> = ({ elements, detachmentHeight, eyeSide, viewMode, clippingPlanes, graphicsQuality }) => {
+    const texture = React.useMemo(() => {
+        const RETINA_BACKGROUND = '#ffffff'; // Light red/pink retina color
+        const TEXTURE_SIZE = 1024;
+
+        const canvas = renderElementsToCanvas(elements, {
+            backgroundColor: RETINA_BACKGROUND,
+            canvasSize: TEXTURE_SIZE,
+        });
+
+        return new THREE.CanvasTexture(canvas);
+    }, [elements]);
     const materialRef = React.useRef<THREE.MeshStandardMaterial>(null);
     const depthMaterialRef = React.useRef<THREE.MeshDepthMaterial>(null);
 
-    // Generate Retina Map (Red background + Original Colors)
+    // Generate Retina Map using shared rendering utility
+    // Red background + Original Colors (consistent with FundusCanvas)
     const retinaMap = React.useMemo(() => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 1024;
-        canvas.height = 1024;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return null;
+        const RETINA_BACKGROUND = '#f4acacff'; // Light red/pink retina color
+        const TEXTURE_SIZE = 1024;
 
-        // 1. Fill Background with Red (Retina Color)
-        ctx.fillStyle = '#f4acacff'; // Light red/pink
-        ctx.fillRect(0, 0, 1024, 1024);
-
-        // 2. Draw Elements
-        // Scale factor from original 600x600 to 1024x1024
-        const scaleX = 1024 / 600;
-        const scaleY = 1024 / 600;
-
-        elements.forEach(element => {
-            if (!element.visible) return;
-
-            // Skip eraser for color map (it just reveals background, which is already red here)
-            // Actually, if we erase on the chart, we see white. Here we see red.
-            // If we have "eraser" strokes, they should probably "erase" to the background color.
-            // Since we started with background color, we can just skip drawing them?
-            // Or if they are erasing *other* strokes, we need to use destination-out?
-            // But canvas doesn't support layers easily.
-            // If we draw in order, eraser should erase previous strokes.
-
-            if (element.toolType === 'eraser') {
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.strokeStyle = '#c04040';
-                ctx.fillStyle = '#c04040';
-            } else {
-                ctx.globalCompositeOperation = 'source-over';
-                // Get color from element
-                // We need to map 'red', 'blue' etc to hex
-                // We can't import MEDICAL_COLORS easily if not exported or we can just redefine/import
-                // It is imported from types.
-                const color = element.color === 'red' ? '#FF0000' :
-                    element.color === 'blue' ? '#0000FF' :
-                        element.color === 'green' ? '#008000' :
-                            element.color === 'brown' ? '#8B4513' :
-                                element.color === 'yellow' ? '#FFFF00' :
-                                    '#000000';
-
-                ctx.strokeStyle = color;
-                ctx.fillStyle = color;
-            }
-
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            const width = (element.width || 2) * scaleX;
-            ctx.lineWidth = width;
-
-            if (element.type === 'stroke' && element.points) {
-                if (element.points.length < 2 && !element.points[0]) return;
-
-                if (element.toolType === 'pattern') {
-                    ctx.beginPath();
-                    ctx.setLineDash([5 * scaleX, 10 * scaleX]);
-
-                    let isFirst = true;
-                    for (const p of element.points) {
-                        if (!p) {
-                            ctx.stroke();
-                            ctx.beginPath();
-                            isFirst = true;
-                            continue;
-                        }
-                        if (isFirst) {
-                            ctx.moveTo(p.x * scaleX, p.y * scaleY);
-                            isFirst = false;
-                        } else {
-                            ctx.lineTo(p.x * scaleX, p.y * scaleY);
-                        }
-                    }
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-                } else if (element.toolType === 'fill') {
-                    ctx.globalAlpha = 0.5;
-                    ctx.beginPath();
-
-                    let isFirst = true;
-                    for (const p of element.points) {
-                        if (!p) {
-                            ctx.closePath();
-                            ctx.fill();
-                            ctx.stroke();
-                            ctx.beginPath();
-                            isFirst = true;
-                            continue;
-                        }
-                        if (isFirst) {
-                            ctx.moveTo(p.x * scaleX, p.y * scaleY);
-                            isFirst = false;
-                        } else {
-                            ctx.lineTo(p.x * scaleX, p.y * scaleY);
-                        }
-                    }
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.stroke();
-                    ctx.globalAlpha = 1.0;
-                } else {
-                    // Brush/Pen
-                    if (element.toolType === 'brush') {
-                        ctx.globalAlpha = element.layer === 'vitreous' ? 0.3 : 0.5;
-                    }
-                    ctx.beginPath();
-
-                    let isFirst = true;
-                    for (const p of element.points) {
-                        if (!p) {
-                            ctx.stroke();
-                            ctx.beginPath();
-                            isFirst = true;
-                            continue;
-                        }
-                        if (isFirst) {
-                            ctx.moveTo(p.x * scaleX, p.y * scaleY);
-                            isFirst = false;
-                        } else {
-                            ctx.lineTo(p.x * scaleX, p.y * scaleY);
-                        }
-                    }
-                    ctx.stroke();
-                    ctx.globalAlpha = 1.0;
-                }
-            } else if ((element.type === 'hemorrhage' || element.type === 'spot') && element.position) {
-                ctx.beginPath();
-                ctx.ellipse(
-                    element.position.x * scaleX,
-                    element.position.y * scaleY,
-                    (element.width || 10) * scaleX / 2,
-                    (element.height || 10) * scaleY / 2,
-                    element.rotation || 0,
-                    0, Math.PI * 2
-                );
-                ctx.fill();
-            }
+        const canvas = renderElementsToCanvas(elements, {
+            backgroundColor: RETINA_BACKGROUND,
+            canvasSize: TEXTURE_SIZE,
         });
 
         return new THREE.CanvasTexture(canvas);
