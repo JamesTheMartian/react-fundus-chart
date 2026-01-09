@@ -33,13 +33,28 @@ version-info: ## Show current version info
 	@echo "Git tag: $$(git describe --tags --always 2>/dev/null || echo 'no-tags')"
 
 version-patch: ## Bump patch version (0.0.x)
-	npm version patch
+	$(MAKE) version-bump BUMP=patch
 
 version-minor: ## Bump minor version (0.x.0)
-	npm version minor
+	$(MAKE) version-bump BUMP=minor
 
 version-major: ## Bump major version (x.0.0)
-	npm version major
+	$(MAKE) version-bump BUMP=major
+
+version-bump:
+	@if [ -z "$(BUMP)" ]; then echo "Error: BUMP variable not set"; exit 1; fi
+	@echo "Bumping version ($(BUMP))..."
+	npm version $(BUMP) --no-git-tag-version
+	@VERSION=$$(npm pkg get version | tr -d '"'); \
+	echo "Syncing version $$VERSION to workspaces..."; \
+	npm pkg set version="$$VERSION" -w client; \
+	npm pkg set version="$$VERSION" -w server; \
+	git add package.json package-lock.json client/package.json server/package.json; \
+	if [ -f client/package-lock.json ]; then git add client/package-lock.json; fi; \
+	if [ -f server/package-lock.json ]; then git add server/package-lock.json; fi; \
+	git commit -m "v$$VERSION"; \
+	git tag "v$$VERSION"
+	@echo "✓ Version bumped and synced to $$VERSION"
 
 publish: ## Push changes and tags to remote
 	git push && git push --tags
