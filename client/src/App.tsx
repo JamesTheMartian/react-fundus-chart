@@ -360,9 +360,26 @@ function AppContent() {
           <h1 className="text-sm font-semibold text-gray-900 dark:text-gray-50 sm:hidden">{APP_CONFIG.shortName}</h1>
           <span className="text-[10px] text-gray-400 font-mono">v{APP_CONFIG.version}</span>
         </div>
-        <div className="flex items-center gap-1.5" data-tutorial="m-save-share">
+        <div className="flex items-center gap-1.5">
           {/* Auto-save indicator */}
           <AutoSaveIndicator status={autoSaveStatus} lastSaved={autoSaveLastSaved} isDark={isDark} compact />
+
+          <div data-tutorial="m-save-share" className="flex items-center justify-between gap-1 w-full\">
+              <button
+                onClick={() => setShowSaveChart(true)}
+                className={`flex-1 flex justify-center p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-gray-800 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
+                title="Save Chart"
+              >
+                <Save size={18} />
+              </button>
+              <button
+                onClick={() => setShowShare(true)}
+                className={`flex-1 flex justify-center p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-gray-800 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
+                title="Share"
+              >
+                <Share2 size={18} />
+              </button>
+            </div>
 
           {/* User menu */}
           <UserMenu
