@@ -90,8 +90,10 @@ function extractItems(content) {
  */
 function generateTypeScript(entries) {
   const entriesJson = JSON.stringify(entries, null, 2)
-    .replace(/"(\w+)":/g, '$1:')  // Remove quotes from keys
-    .replace(/"/g, "'");          // Use single quotes for strings
+    .replace(/\"(\w+)\":/g, '$1:')  // Remove quotes from keys
+    .replace(/\\"/g, '"')           // Unescape double quotes from JSON
+    .replace(/'/g, "\\'")           // Escape single quotes in content
+    .replace(/"/g, "'");            // Use single quotes for strings
 
   return `import type { ChangelogEntry } from '../utils/onboardingTypes';
 

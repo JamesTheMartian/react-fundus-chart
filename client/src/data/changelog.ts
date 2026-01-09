@@ -66,7 +66,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       'docker tsc error',
       'eraser now working correctly',
       'fill and pattern now work again',
-      'server can now be accesed from remote device, and shared charts don't auto save',
+      'server can now be accesed from remote device, and shared charts don\'t auto save',
       'shared drawing not rendering',
       'shortcut working in 3d view, changed retina color, minor changes'
     ],
