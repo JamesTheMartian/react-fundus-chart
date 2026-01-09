@@ -63,7 +63,7 @@ export const MobileToolbar: React.FC<ToolbarProps> = ({
                     {/* Main Toolbar Pill */}
                     {/* Tools Section (Horizontal Scroll with Arrows) */}
                     <HorizontalScrollWithArrows
-                        containerClassName="glass rounded-full p-2 pl-0 pr-0 group flex items-center justify-center shrink-0"
+                        containerClassName="glass rounded-full p-2 pl-0 pr-0 group flex items-center justify-center shrink-0 no-scrollbar flex items-center shadow-xl shadow-gray-200/40 dark:shadow-black/30 w-full"
                         scrollAreaClassName="flex gap-1 rounded-full overflow-x-auto snap-x snap-mandatory px-2 no-scrollbar"
                         scrollAmount={100}
                         arrowSize={14}
@@ -90,7 +90,7 @@ export const MobileToolbar: React.FC<ToolbarProps> = ({
                                 </span>
                             </button>
                         ))}
-                        <div className="relative group">
+                        <div className="relative group min-w-[120px]">
                             <select
                                 value={activePathology}
                                 onChange={(e) => setActivePathology(e.target.value as PathologyType)}
