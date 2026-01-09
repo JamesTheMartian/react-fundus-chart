@@ -41,7 +41,7 @@ export const MobileToolbar: React.FC<ToolbarProps> = ({
 
     return (
         <>
-            <div className="w-full h-full flex items-center overflow-hidden">
+            <div data-tutorial="m-tool-selector" className="w-full h-full flex items-center overflow-hidden">
                 <div className="flex flex-col items-center gap-3 w-full pointer-events-auto">
 
                     {/* Brush Size Slider (Conditional) */}
@@ -102,10 +102,8 @@ export const MobileToolbar: React.FC<ToolbarProps> = ({
                         arrowIconClassName="text-gray-700 dark:text-gray-300 drop-shadow-sm"
                     >
 
-                        {/* Rest of Toolbar (Horizontal Scroll with Arrows) */}
-
                         {/* Change Eye Side */}
-                        <div className='flex items-center gap-1 shrink-0'>
+                        <div className='flex items-center gap-1 shrink-0' data-tutorial="m-eye-selector">
                             <button
                                 onClick={() => eyeSide === 'OD' ? setEyeSide('OS') : setEyeSide('OD')}
                                 className="p-3 shrink-0 w-12 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-transform"
@@ -128,7 +126,7 @@ export const MobileToolbar: React.FC<ToolbarProps> = ({
                         <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 shrink-0 mx-1"></div>
 
                         {/* Active Color (Larger touch target) */}
-                        <div className="flex items-center gap-3 shrink-0">
+                        <div className="flex items-center gap-3 shrink-0" data-tutorial="m-color-selector">
                             {(() => {
                                 const availableColors = Object.keys(MEDICAL_COLORS) as ColorCode[];
                                 const colorsToDisplay: ColorCode[] = [];
@@ -177,7 +175,7 @@ export const MobileToolbar: React.FC<ToolbarProps> = ({
                         <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 shrink-0 mx-1"></div>
 
                         {/* Undo/Redo (Larger touch targets) */}
-                        <div className="flex glass rounded-full gap-0.5 shrink-0">
+                        <div className="flex glass rounded-full gap-0.5 shrink-0" data-tutorial="m-action-buttons">
                             <button
                                 onClick={onUndo}
                                 className="p-3 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 active:scale-90 transition-transform"
@@ -260,7 +258,7 @@ export const MobileToolbar: React.FC<ToolbarProps> = ({
                                 {/* Scrollable Content */}
                                 <div className="overflow-y-auto p-5 pt-4 flex flex-col gap-5 relative flex-1">
                                     {/* Eye Selection */}
-                                    <div>
+                                    <div data-tutorial="m-eye-selector-sheet">
                                         <h4 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase mb-2">Eye Selection</h4>
                                         <div className="flex gap-2 bg-gray-50 dark:bg-gray-800 p-1 rounded-xl">
                                             <button

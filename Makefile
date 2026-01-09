@@ -51,7 +51,9 @@ version-bump:
 	npm pkg set version="$$VERSION" -w server; \
 	echo "Generating changelog..."; \
 	npx conventional-changelog-cli -p angular -i CHANGELOG.md -s; \
-	git add package.json package-lock.json client/package.json server/package.json CHANGELOG.md; \
+	echo "Syncing changelog to TypeScript..."; \
+	node scripts/sync-changelog.mjs; \
+	git add package.json package-lock.json client/package.json server/package.json CHANGELOG.md client/src/data/changelog.ts; \
 	if [ -f client/package-lock.json ]; then git add client/package-lock.json; fi; \
 	if [ -f server/package-lock.json ]; then git add server/package-lock.json; fi; \
 	git commit -m "v$$VERSION"; \

@@ -1,9 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Moon, Sun, Zap, Keyboard, HelpCircle, Info, ExternalLink, Cpu } from 'lucide-react';
+import { X, Moon, Sun, Zap, Keyboard, HelpCircle, Info, ExternalLink, Cpu, Sparkles, BookOpen, Rocket, PlayCircle } from 'lucide-react';
 
 import { APP_CONFIG } from '../../utils/constants';
 import type { GraphicsQuality } from '../../utils/types';
+import { useOnboarding } from '../../contexts/OnboardingContext';
 
 // Graphics quality labels and descriptions
 const GRAPHICS_QUALITY_OPTIONS: { value: GraphicsQuality; label: string; description: string }[] = [
@@ -192,6 +193,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         <section className="space-y-3">
                             <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Help & About</h3>
 
+                            <HelpButtons onClose={onClose} />
+
                             <button
                                 onClick={onShowShortcuts}
                                 className="w-full flex items-center justify-between p-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all text-left"
@@ -228,5 +231,82 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </motion.div>
             </div>
         </AnimatePresence>
+    );
+};
+
+// Separate component to use hook within SettingsModal
+const HelpButtons: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+    const { setShowQuickStart, setShowHelpCenter, setShowWhatsNew, startTutorial } = useOnboarding();
+
+    const handleQuickStart = () => {
+        onClose();
+        setShowQuickStart(true);
+    };
+
+    const handleHelpCenter = () => {
+        onClose();
+        setShowHelpCenter(true);
+    };
+
+    const handleWhatsNew = () => {
+        onClose();
+        setShowWhatsNew(true);
+    };
+
+    const handleReplayTutorial = () => {
+        onClose();
+        startTutorial();
+    };
+
+    return (
+        <>
+            <button
+                onClick={handleQuickStart}
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all text-left"
+            >
+                <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary-100 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400">
+                        <Sparkles size={18} />
+                    </div>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Quick Start Guide</span>
+                </div>
+            </button>
+
+            <button
+                onClick={handleHelpCenter}
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all text-left"
+            >
+                <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">
+                        <BookOpen size={18} />
+                    </div>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Help Center</span>
+                </div>
+            </button>
+
+            <button
+                onClick={handleWhatsNew}
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all text-left"
+            >
+                <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400">
+                        <Rocket size={18} />
+                    </div>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-200">What's New</span>
+                </div>
+            </button>
+
+            <button
+                onClick={handleReplayTutorial}
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all text-left"
+            >
+                <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                        <PlayCircle size={18} />
+                    </div>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Replay Tutorial</span>
+                </div>
+            </button>
+        </>
     );
 };

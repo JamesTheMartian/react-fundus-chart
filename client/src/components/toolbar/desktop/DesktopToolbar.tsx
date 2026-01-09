@@ -42,7 +42,7 @@ export const DesktopToolbar: React.FC<ToolbarProps> = ({
     return (
         <div className="flex flex-col gap-5 p-4 w-full transition-all h-full">
             {/* Eye Selection */}
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3" data-tutorial="eye-selector">
                 <SectionHeader>Eye Selection</SectionHeader>
                 <div className="flex gap-2 bg-gray-100/80 dark:bg-gray-800/80 p-1.5 rounded-xl">
                     <button
@@ -73,7 +73,7 @@ export const DesktopToolbar: React.FC<ToolbarProps> = ({
             <div className="h-px bg-gray-100 dark:bg-gray-800 w-full"></div>
 
             {/* Drawing Tools */}
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3" data-tutorial="tool-selector">
                 <div className="flex items-center justify-between">
                     <SectionHeader>Drawing Tools</SectionHeader>
                 </div>
@@ -196,7 +196,7 @@ export const DesktopToolbar: React.FC<ToolbarProps> = ({
             <div className="h-px bg-gray-100 dark:bg-gray-800 w-full"></div>
 
             {/* Color Palette */}
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3" data-tutorial="color-selector">
                 <div className="flex justify-between items-center">
                     <SectionHeader>Color Palette</SectionHeader>
                     <button
@@ -253,6 +253,7 @@ export const DesktopToolbar: React.FC<ToolbarProps> = ({
                     </button>
                     <button
                         onClick={on3DView}
+                        data-tutorial="3d-button"
                         aria-label="Open 3D View (Shift+3)"
                         className="flex items-center justify-center gap-2 p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200"
                         title="3D View (Shift+3)"
@@ -272,7 +273,7 @@ export const DesktopToolbar: React.FC<ToolbarProps> = ({
             </div>
 
             {/* Undo/Redo/Clear */}
-            <div className="flex gap-2 mt-2">
+            <div className="flex gap-2 mt-2" data-tutorial="action-buttons">
                 <button
                     onClick={onUndo}
                     aria-label="Undo (⌘Z)"

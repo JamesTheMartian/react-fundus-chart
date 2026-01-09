@@ -30,6 +30,13 @@ import { AutoSaveIndicator } from './components/ui/AutoSaveIndicator';
 import { useAutoSave, loadGuestChart, clearGuestChart } from './hooks/useAutoSave';
 import { charts as chartsApi } from './api/client';
 
+// Onboarding imports
+import { OnboardingProvider, useOnboarding } from './contexts/OnboardingContext';
+import { TutorialOverlay } from './components/modals/TutorialOverlay';
+import { QuickStartModal } from './components/modals/QuickStartModal';
+import { HelpCenterModal } from './components/modals/HelpCenterModal';
+import { WhatsNewModal } from './components/modals/WhatsNewModal';
+
 import type { ColorCode, ToolType, EyeSide, PathologyType, FundusElement, GraphicsQuality } from './utils/types';
 import { PATHOLOGY_PRESETS } from './utils/types';
 import { APP_CONFIG } from './utils/constants';
@@ -353,7 +360,7 @@ function AppContent() {
           <h1 className="text-sm font-semibold text-gray-900 dark:text-gray-50 sm:hidden">{APP_CONFIG.shortName}</h1>
           <span className="text-[10px] text-gray-400 font-mono">v{APP_CONFIG.version}</span>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5" data-tutorial="m-save-share">
           {/* Auto-save indicator */}
           <AutoSaveIndicator status={autoSaveStatus} lastSaved={autoSaveLastSaved} isDark={isDark} compact />
 
@@ -369,6 +376,7 @@ function AppContent() {
           {/* 3D View Button */}
           <button
             onClick={handle3DView}
+            data-tutorial="m-3d-button"
             className="flex items-center gap-1 px-2 py-1.5 bg-primary-50 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 rounded-lg text-[10px] font-bold border border-primary-100 dark:border-primary-500/30 active:scale-95 transition-transform uppercase tracking-wider"
           >
             3D
@@ -408,7 +416,7 @@ function AppContent() {
               onSettingsClick={() => setShowSettings(true)}
               isDark={isDark}
             />
-            <div className="flex items-center justify-between gap-1 w-full">
+            <div data-tutorial="save-share" className="flex items-center justify-between gap-1 w-full\">
               <button
                 onClick={() => setShowSaveChart(true)}
                 className={`flex-1 flex justify-center p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-gray-800 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
@@ -476,7 +484,7 @@ function AppContent() {
         className="flex-1 relative bg-gray-100 dark:bg-gray-950 overflow-hidden flex flex-col items-center justify-center lg:justify-center p-2 pb-60 h-[calc(100vh-60px)] lg:pb-0 sm:p-4 lg:p-8 transition-colors"
       >
         {/* Canvas Container */}
-        <div className="relative shadow-2xl shadow-black/10 dark:shadow-black/30 rounded-full lg:rounded-2xl overflow-hidden bg-white dark:bg-gray-900 ring-1 ring-black/5 dark:ring-white/5 w-full max-w-[90w] lg:max-w-none aspect-square lg:aspect-auto lg:w-auto lg:h-auto start-canvas-scale">
+        <div data-tutorial="canvas" className="relative shadow-2xl shadow-black/10 dark:shadow-black/30 rounded-full lg:rounded-2xl overflow-hidden bg-white dark:bg-gray-900 ring-1 ring-black/5 dark:ring-white/5 w-full max-w-[90w] lg:max-w-none aspect-square lg:aspect-auto lg:w-auto lg:h-auto start-canvas-scale\">
           <motion.div
             initial={false}
             animate={{ rotate: isInverted ? 180 : 0 }}
@@ -693,9 +701,33 @@ function App() {
   return (
     <ToastProvider>
       <AuthProvider>
-        <AppContent />
+        <OnboardingProvider>
+          <AppContent />
+          <OnboardingModals />
+        </OnboardingProvider>
       </AuthProvider>
     </ToastProvider>
+  );
+}
+
+// Separate component for onboarding modals to use hooks
+function OnboardingModals() {
+  const {
+    showQuickStart,
+    setShowQuickStart,
+    showHelpCenter,
+    setShowHelpCenter,
+    showWhatsNew,
+    setShowWhatsNew,
+  } = useOnboarding();
+
+  return (
+    <>
+      <TutorialOverlay />
+      <QuickStartModal isOpen={showQuickStart} onClose={() => setShowQuickStart(false)} />
+      <HelpCenterModal isOpen={showHelpCenter} onClose={() => setShowHelpCenter(false)} />
+      <WhatsNewModal isOpen={showWhatsNew} onClose={() => setShowWhatsNew(false)} />
+    </>
   );
 }
 
